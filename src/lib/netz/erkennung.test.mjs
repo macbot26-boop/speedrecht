@@ -1,0 +1,147 @@
+// Tests für die Anbieter-Erkennung. Läuft mit dem eingebauten Node-Test-
+// Runner (`npm test`), keine zusätzlichen Abhängigkeiten.
+//
+// Zwei Ebenen:
+//   1. Mechanik — binäre Suche & IP-Parser mit erfundenen Mini-Daten.
+//   2. Echte Tabelle — Struktur-Invarianten der generierten Datei plus
+//      Stichproben mit weltweit bekannten, stabilen Adressen.
+
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { erkennerAufbauen, ipParsen } from "./erkennung.ts";
+
+// ---------------------------------------------------------------------------
+// 1. IP-Parser
+// ---------------------------------------------------------------------------
+
+test("ipParsen: gültige IPv4", () => {
+  assert.deepEqual(ipParsen("1.2.3.4"), { familie: "v4", wert: 0x01020304 });
+  assert.deepEqual(ipParsen("0.0.0.0"), { familie: "v4", wert: 0 });
+  assert.deepEqual(ipParsen("255.255.255.255"), { familie: "v4", wert: 0xffffffff });
+});
+
+test("ipParsen: v4-in-v6-Schreibweise wird als v4 behandelt", () => {
+  assert.deepEqual(ipParsen("::ffff:8.8.8.8"), { familie: "v4", wert: 0x08080808 });
+});
+
+test("ipParsen: gültige IPv6", () => {
+  assert.deepEqual(ipParsen("::1"), { familie: "v6", wert: 1n });
+  assert.deepEqual(ipParsen("2001:db8::"), {
+    familie: "v6",
+    wert: 0x20010db8n << 96n,
+  });
+  assert.deepEqual(ipParsen("1:2:3:4:5:6:7:8"), {
+    familie: "v6",
+    wert:
+      (1n << 112n) | (2n << 96n) | (3n << 80n) | (4n << 64n) |
+      (5n << 48n) | (6n << 32n) | (7n << 16n) | 8n,
+  });
+});
+
+test("ipParsen: Müll wird abgelehnt", () => {
+  for (const kaputt of [
+    "256.1.1.1", "1.2.3", "1.2.3.4.5", "hallo", "",
+    "1::2::3", "1:2:3:4:5:6:7:8:9", "fe80::1%en0", "gggg::1", "1.2.3.4:443",
+  ]) {
+    assert.equal(ipParsen(kaputt), null, `sollte null sein: "${kaputt}"`);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 2. Binäre Suche mit Mini-Daten
+// ---------------------------------------------------------------------------
+
+const ip4 = (text) => ipParsen(text).wert;
+
+const MINI = {
+  stand: "2026-01-01",
+  quelle: "test",
+  traeger: [
+    { asn: 1, holder: "A GmbH", anbieter: "AnbieterA", kategorie: "festnetz" },
+    { asn: 2, holder: "B Inc", anbieter: "AnbieterB", kategorie: "hosting_vpn" },
+  ],
+  v4: [
+    [ip4("10.0.0.0"), ip4("10.0.0.255"), 0],
+    [ip4("10.0.1.0"), ip4("10.0.1.255"), 1],
+    [ip4("192.168.0.0"), ip4("192.168.255.255"), 0],
+  ],
+  v6: [["20010db8000000000000000000000000", "20010db8ffffffffffffffffffffffff", 1]],
+};
+
+test("erkennen: Treffer an Grenzen und in der Mitte", () => {
+  const { erkennen } = erkennerAufbauen(MINI);
+  assert.equal(erkennen("10.0.0.0").anbieter, "AnbieterA"); // exakter Start
+  assert.equal(erkennen("10.0.0.255").anbieter, "AnbieterA"); // exaktes Ende
+  assert.equal(erkennen("10.0.0.128").anbieter, "AnbieterA"); // mittendrin
+  assert.equal(erkennen("10.0.1.0").anbieter, "AnbieterB"); // Nachbar-Abschnitt
+  assert.equal(erkennen("192.168.42.1").kategorie, "festnetz");
+});
+
+test("erkennen: daneben ist unbekannt", () => {
+  const { erkennen } = erkennerAufbauen(MINI);
+  for (const ip of ["9.255.255.255", "10.0.2.0", "11.0.0.0", "203.0.113.7"]) {
+    assert.deepEqual(erkennen(ip), { anbieter: null, kategorie: "unbekannt", asn: null });
+  }
+  assert.equal(erkennen("nicht-mal-eine-ip").kategorie, "unbekannt");
+});
+
+test("erkennen: IPv6-Treffer über BigInt", () => {
+  const { erkennen } = erkennerAufbauen(MINI);
+  assert.equal(erkennen("2001:db8::1").anbieter, "AnbieterB");
+  assert.equal(erkennen("2001:db9::1").kategorie, "unbekannt");
+});
+
+// ---------------------------------------------------------------------------
+// 3. Echte generierte Tabelle
+// ---------------------------------------------------------------------------
+
+const echteDaten = JSON.parse(
+  await readFile(new URL("./netzdaten.generated.json", import.meta.url), "utf8")
+);
+
+test("Tabelle: Abschnitte sind sortiert und überschneidungsfrei", () => {
+  let vorherigesEnde = -1;
+  for (const [start, ende] of echteDaten.v4) {
+    assert.ok(start <= ende, "v4: start <= ende");
+    assert.ok(start > vorherigesEnde, "v4: keine Überschneidung");
+    vorherigesEnde = ende;
+  }
+  let vorherigesEndeV6 = -1n;
+  for (const [start, ende] of echteDaten.v6) {
+    const s = BigInt(`0x${start}`);
+    const e = BigInt(`0x${ende}`);
+    assert.ok(s <= e, "v6: start <= ende");
+    assert.ok(s > vorherigesEndeV6, "v6: keine Überschneidung");
+    vorherigesEndeV6 = e;
+  }
+});
+
+test("Tabelle: alle Träger-Indizes gültig, beide Kategorien vertreten", () => {
+  const n = echteDaten.traeger.length;
+  for (const [, , idx] of [...echteDaten.v4, ...echteDaten.v6]) {
+    assert.ok(Number.isInteger(idx) && idx >= 0 && idx < n);
+  }
+  const kategorien = new Set(echteDaten.traeger.map((t) => t.kategorie));
+  assert.ok(kategorien.has("festnetz"));
+  assert.ok(kategorien.has("hosting_vpn"));
+});
+
+test("Tabelle: weltbekannte Adressen werden richtig eingeordnet", () => {
+  const { erkennen } = erkennerAufbauen(echteDaten);
+  assert.equal(erkennen("8.8.8.8").anbieter, "Google");
+  assert.equal(erkennen("8.8.8.8").kategorie, "hosting_vpn");
+  assert.equal(erkennen("1.1.1.1").anbieter, "Cloudflare");
+  assert.equal(erkennen("2606:4700:4700::1111").anbieter, "Cloudflare"); // dito, v6
+});
+
+test("Tabelle: Selbstkonsistenz — Startadresse eines Telekom-Abschnitts → Telekom", () => {
+  const { erkennen } = erkennerAufbauen(echteDaten);
+  const telekomIdx = echteDaten.traeger.findIndex((t) => t.anbieter === "Telekom");
+  assert.ok(telekomIdx >= 0);
+  const abschnitt = echteDaten.v4.find(([, , idx]) => idx === telekomIdx);
+  assert.ok(abschnitt, "Telekom hat mindestens einen v4-Abschnitt");
+  const start = abschnitt[0];
+  const ip = [start >>> 24, (start >> 16) & 255, (start >> 8) & 255, start & 255].join(".");
+  assert.equal(erkennen(ip).anbieter, "Telekom");
+});
