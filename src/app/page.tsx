@@ -22,7 +22,7 @@ export default function Home() {
         </div>
 
         <Link
-          href="/messung"
+          href="/messung?start=1"
           className="rounded-full bg-[#0b57d0] px-8 py-4 text-lg font-semibold text-white shadow-sm transition hover:bg-blue-700"
         >
           Jetzt messen

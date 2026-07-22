@@ -15,27 +15,20 @@ import {
 import type { ConnectionType, IasCompletedKpis } from "@/lib/ias/types";
 import { ANBIETER_SONSTIGE, FESTNETZ_ANBIETER } from "@/lib/netz/anbieter";
 
-const CONNECTION_OPTIONS: {
-  value: ConnectionType;
-  title: string;
-  hint: string;
-}[] = [
-  {
-    value: "wifi",
-    title: "WLAN",
-    hint: "Ich bin über Funk mit meinem Router verbunden",
-  },
-  {
-    value: "lan",
-    title: "LAN-Kabel",
-    hint: "Mein Gerät hängt per Kabel am Router",
-  },
-  {
-    value: "unknown",
-    title: "Weiß ich nicht",
-    hint: "Einfach messen — Hinweis kommt mit dem Ergebnis",
-  },
+// Die Verbindungsart wird NICHT vorab abgefragt (Founder-Feedback: kein
+// Quiz vor der Messung). Stattdessen: zwei optionale Chips während der
+// ~30 Sekunden Messzeit; ohne Antwort gilt ehrlich "unknown".
+const VERBINDUNGS_CHIPS: { value: ConnectionType; title: string }[] = [
+  { value: "wifi", title: "WLAN" },
+  { value: "lan", title: "LAN-Kabel" },
 ];
+
+// Ohne konfigurierten öffentlichen Messserver (Produktion vor dem
+// Server-Anschluss) wäre jede Messung zum Scheitern verurteilt — dann
+// lieber ehrlich sagen, was Phase ist, statt einen Fehler zu zeigen.
+const OHNE_PEER =
+  process.env.NODE_ENV === "production" &&
+  (PEER_HOST === "localhost" || PEER_HOST.endsWith(".localhost"));
 
 const PHASE_LABELS: Record<string, string> = {
   loading: "Messtechnik wird geladen …",
@@ -114,19 +107,39 @@ export function MessungFlow() {
   const vpnOderHosting = netz?.kategorie === "hosting_vpn";
   const erkanntFestnetz = netz?.kategorie === "festnetz" ? netz.anbieter : null;
 
-  const begin = useCallback(
-    (c: ConnectionType) => {
-      setConnection(c);
-      setSaveState("idle");
-      setSavedId(null);
-      // Verspätete Speicher-Antworten der VORHERIGEN Messung dürfen ab jetzt
-      // nichts mehr setzen (sonst hinge die Anbieter-Bestätigung an der
-      // falschen Messung).
-      savedForResult.current = null;
-      void start();
-    },
-    [start]
-  );
+  const begin = useCallback(() => {
+    setSaveState("idle");
+    setSavedId(null);
+    // Verspätete Speicher-Antworten der VORHERIGEN Messung dürfen ab jetzt
+    // nichts mehr setzen (sonst hinge die Anbieter-Bestätigung an der
+    // falschen Messung).
+    savedForResult.current = null;
+    void start();
+  }, [start]);
+
+  // Ein-Tap-Start: Der „Jetzt messen“-Knopf der Startseite verlinkt auf
+  // /messung?start=1 — dann geht es hier ohne weiteren Klick los. Der
+  // Parameter wird sofort entfernt, damit ein Neuladen nicht ungefragt
+  // erneut misst (eine Messung überträgt viele Megabyte).
+  const autoGestartet = useRef(false);
+  useEffect(() => {
+    if (autoGestartet.current || OHNE_PEER) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("start") !== "1") return;
+    autoGestartet.current = true;
+    params.delete("start");
+    const rest = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      window.location.pathname + (rest ? `?${rest}` : "")
+    );
+    // Kein kaskadierendes Re-Rendern: Das hier ist die nachgeholte Reaktion
+    // auf den einen Nutzer-Tap von der Startseite (?start=1) — einmalig per
+    // Ref abgesichert, danach ist der Parameter entfernt.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    begin();
+  }, [begin]);
 
   // Ergebnis anonym speichern, genau einmal pro abgeschlossener Messung.
   useEffect(() => {
@@ -177,18 +190,41 @@ export function MessungFlow() {
       });
   }, [phase, result, connection]);
 
-  // ---- Schritt 1: Selbstauskunft (der eine Tap, der die Messung startet) ----
+  // ---- Testphase ohne öffentlichen Messserver: ehrlich sagen, statt in
+  // einen sicheren Fehler laufen zu lassen. ----
+  if (OHNE_PEER) {
+    return (
+      <div className="flex w-full max-w-xl flex-col items-center gap-6 text-center">
+        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+          Der Messserver ist noch nicht angeschlossen
+        </h1>
+        <p className="text-base leading-7 text-zinc-600 dark:text-zinc-400">
+          Du bist ganz früh dabei: In dieser privaten Testphase steht der
+          öffentliche Messserver noch nicht bereit — Messungen sind deshalb
+          hier noch nicht möglich. Sobald er angeschlossen ist, geht es an
+          dieser Stelle mit einem Tap los.
+        </p>
+        <p className="max-w-md text-xs leading-5 text-zinc-500">
+          Gemessen wird dann mit der offiziellen Open-Source-Messmethodik der
+          Breitbandmessung gegen unseren eigenen Server — Ergebnisse sind ein
+          Indiz, rechtsgültige Nachweise erzeugt nur die offizielle
+          Desktop-App.
+        </p>
+      </div>
+    );
+  }
+
+  // ---- Schritt 1: ein Tap, sonst nichts ----
   if (phase === "idle") {
     return (
       <div className="flex w-full max-w-xl flex-col items-center gap-8 text-center">
         <div className="flex flex-col gap-3">
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Wie ist dieses Gerät gerade mit dem Router verbunden?
+            Bereit? Ein Tap genügt.
           </h1>
           <p className="text-base leading-7 text-zinc-600 dark:text-zinc-400">
-            Ein Browser kann das nicht selbst erkennen — deine ehrliche Antwort
-            macht dein Ergebnis aussagekräftig. Die Messung startet direkt nach
-            dem Tippen und dauert etwa eine halbe Minute.
+            Die Messung dauert etwa eine halbe Minute und überträgt dabei
+            einige Megabyte — am besten nicht im Datentarif.
           </p>
         </div>
         {vpnOderHosting && (
@@ -206,22 +242,12 @@ export function MessungFlow() {
             aus. Für den Anschluss-Check: zu Hause ins WLAN oder ans Kabel.
           </Warnkarte>
         )}
-        <div className="flex w-full flex-col gap-3">
-          {CONNECTION_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => begin(opt.value)}
-              className="group flex flex-col items-start gap-1 rounded-2xl border border-zinc-200 bg-white px-6 py-4 text-left transition hover:border-[#0b57d0] hover:shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-blue-400"
-            >
-              <span className="text-lg font-semibold text-zinc-900 group-hover:text-[#0b57d0] dark:text-zinc-50 dark:group-hover:text-blue-400">
-                {opt.title}
-              </span>
-              <span className="text-sm text-zinc-500 dark:text-zinc-400">
-                {opt.hint}
-              </span>
-            </button>
-          ))}
-        </div>
+        <button
+          onClick={begin}
+          className="rounded-full bg-[#0b57d0] px-10 py-4 text-lg font-semibold text-white shadow-sm transition hover:bg-blue-700"
+        >
+          Messung starten
+        </button>
         <p className="max-w-md text-xs leading-5 text-zinc-500">
           Gemessen wird mit der offiziellen Open-Source-Messmethodik der
           Breitbandmessung (4 parallele Datenströme, 10-Sekunden-Fenster) gegen
@@ -243,7 +269,7 @@ export function MessungFlow() {
           {error?.message}
         </p>
         <button
-          onClick={() => connection && begin(connection)}
+          onClick={begin}
           className="rounded-full bg-[#0b57d0] px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
         >
           Nochmal versuchen
@@ -314,7 +340,7 @@ export function MessungFlow() {
               Wert: einmal per LAN-Kabel messen.
             </div>
           )}
-          {connection === "unknown" && (
+          {(connection === "unknown" || connection === null) && (
             <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm leading-6 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
               Verbindungsart unbekannt — falls du über WLAN gemessen hast, kann
               dein Heim-WLAN das Ergebnis beeinflussen.
@@ -344,7 +370,7 @@ export function MessungFlow() {
 
         <div className="flex flex-col items-center gap-2">
           <button
-            onClick={() => connection && begin(connection)}
+            onClick={begin}
             className="rounded-full bg-[#0b57d0] px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
           >
             Nochmal messen
@@ -405,6 +431,32 @@ export function MessungFlow() {
             />
           ))}
         </div>
+      </div>
+
+      {/* Optionale Selbstauskunft — genau in der Wartezeit, wo sie nicht stört */}
+      <div className="flex flex-col items-center gap-2">
+        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+          Nebenbei: Wie ist dieses Gerät mit dem Router verbunden?
+        </p>
+        <div className="flex gap-2">
+          {VERBINDUNGS_CHIPS.map((chip) => (
+            <button
+              key={chip.value}
+              onClick={() => setConnection(chip.value)}
+              aria-pressed={connection === chip.value}
+              className={
+                connection === chip.value
+                  ? "rounded-full bg-[#0b57d0] px-5 py-2 text-sm font-semibold text-white"
+                  : "rounded-full border border-zinc-300 px-5 py-2 text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+              }
+            >
+              {chip.title}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-zinc-400 dark:text-zinc-500">
+          Keine Angabe? Kein Problem — der Hinweis kommt mit dem Ergebnis.
+        </p>
       </div>
 
       <p className="text-xs text-zinc-400 dark:text-zinc-500">
