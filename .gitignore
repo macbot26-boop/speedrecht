@@ -1,14 +1,20 @@
 # Abhängigkeiten
-node_modules/
+/node_modules
+prototype/node_modules/
 
-# Build-Artefakte
-.next/
-out/
+# Next.js / Build-Artefakte
+/.next/
+/out/
+/build
+/coverage
+*.tsbuildinfo
+next-env.d.ts
 prototype/public/vendor/
 
 # Umgebungsvariablen & Secrets — niemals committen
 .env
 .env.*
+*.pem
 
 # Vercel
 .vercel
@@ -18,6 +24,12 @@ docs/
 
 # Lokale Messdaten (persönlich)
 prototype/data/
+
+# Debug-Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
 # macOS
 .DS_Store
