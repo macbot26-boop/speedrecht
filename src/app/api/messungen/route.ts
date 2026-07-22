@@ -2,35 +2,24 @@
 // anonym in Supabase (EU).
 //
 // Datenschutz: Die IP-Adresse wird NIE gespeichert. Sie wird hier nur
-// flüchtig im Arbeitsspeicher für eine einfache Ratenbegrenzung verwendet
-// und taucht weder in der Datenbank noch in Logs auf.
+// flüchtig im Arbeitsspeicher für zwei Dinge verwendet — Ratenbegrenzung
+// und Anbieter-Erkennung (gespeichert wird nur der grobe Anbietername,
+// z. B. "Vodafone") — und taucht weder in der Datenbank noch in Logs auf.
 //
 // Sicherheitsmodell: Der Client ist nicht vertrauenswürdig. Alles wird
 // validiert, unbekannte Felder werden verworfen, Wertebereiche erzwungen.
 // Der Schreibweg in die DB ist eine RPC-Funktion, die ein Server-Token
 // verlangt (MEASUREMENT_INGEST_TOKEN) — direkter Tabellenzugriff ist aus.
 
+import { ratenBegrenzer } from "@/lib/rate-limit";
+import { ipAusRequest, netzErkennen } from "@/lib/netz/server";
+
 const MAX_BODY_BYTES = 4096;
-const RATE_LIMIT_PER_MINUTE = 12;
 
 const CONNECTION_TYPES = new Set(["wifi", "lan", "unknown"]);
 const IP_VERSIONS = new Set(["v4", "v6"]);
 
-// Ratenbegrenzung pro Instanz (Fluid Compute hält Instanzen warm; für die
-// Testphase ausreichend — kein externer Dienst nötig).
-const buckets = new Map<string, { count: number; resetAt: number }>();
-
-function rateLimited(key: string): boolean {
-  const now = Date.now();
-  const bucket = buckets.get(key);
-  if (!bucket || bucket.resetAt < now) {
-    buckets.set(key, { count: 1, resetAt: now + 60_000 });
-    if (buckets.size > 10_000) buckets.clear(); // Speicher-Backstop
-    return false;
-  }
-  bucket.count += 1;
-  return bucket.count > RATE_LIMIT_PER_MINUTE;
-}
+const rateLimited = ratenBegrenzer(12);
 
 function asNumber(v: unknown, min: number, max: number): number | null {
   const n = typeof v === "number" ? v : NaN;
@@ -60,10 +49,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "Speicherung nicht konfiguriert" }, { status: 503 });
   }
 
-  // Nur zur Ratenbegrenzung — wird nicht gespeichert oder geloggt.
-  const clientKey =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  if (rateLimited(clientKey)) {
+  // Nur zur Ratenbegrenzung und Anbieter-Erkennung — die IP wird nicht
+  // gespeichert und nicht geloggt.
+  const clientIp = ipAusRequest(request);
+  if (rateLimited(clientIp ?? "unknown")) {
     return Response.json({ error: "Zu viele Anfragen" }, { status: 429 });
   }
 
@@ -93,8 +82,17 @@ export async function POST(request: Request) {
     return Response.json({ error: "Pflichtfelder fehlen" }, { status: 400 });
   }
 
+  // Anbieter serverseitig erkennen — der Client hat hier kein Mitspracherecht.
+  // Nur echte Anschlussnetze werden als Anbieter vermerkt (kein Hosting/VPN).
+  const erkennung = clientIp ? netzErkennen(clientIp) : null;
+  const providerDetected =
+    erkennung && (erkennung.kategorie === "festnetz" || erkennung.kategorie === "mobilfunk")
+      ? erkennung.anbieter
+      : null;
+
   const payload = {
     connection_declared: connectionDeclared,
+    provider_detected: providerDetected,
     download_mbps: asNumber(body.download_mbps, 0, 100_000),
     upload_mbps: asNumber(body.upload_mbps, 0, 100_000),
     rtt_avg_ms: asNumber(body.rtt_avg_ms, 0, 60_000),
