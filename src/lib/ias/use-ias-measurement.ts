@@ -10,8 +10,39 @@ import type {
 // Peer-Konfiguration aus der Umgebung; Standardwerte = lokaler Docker-Peer
 // (infra/dev-peer). Die Engine baut den Zielhost als `wsTarget + '.' + wsTLD`
 // zusammen; *.localhost löst in Browsern immer auf die eigene Maschine auf.
-const WS_TARGETS = (process.env.NEXT_PUBLIC_IAS_WS_TARGETS ?? "dev").split(",");
-const WS_TLD = process.env.NEXT_PUBLIC_IAS_WS_TLD ?? "localhost";
+//
+// Test-Werkstatt (nur Entwicklungs-Modus): Zeigt die Konfiguration auf den
+// lokalen Docker-Peer (*.localhost), ist die Seite aber von einem ANDEREN
+// Gerät aus geöffnet (Handy → Mac im Heimnetz), dann wäre "localhost" das
+// falsche Gerät — es meint auf dem Handy das Handy. In dem Fall übernehmen
+// wir den Hostnamen aus der Adresszeile: Der zeigt sicher auf die Maschine,
+// auf der Dev-Server UND Peer laufen. Produktion bleibt unberührt.
+function peerKonfiguration(): { targets: string[]; tld: string } {
+  const targets = (process.env.NEXT_PUBLIC_IAS_WS_TARGETS ?? "dev").split(",");
+  const tld = process.env.NEXT_PUBLIC_IAS_WS_TLD ?? "localhost";
+
+  if (
+    process.env.NODE_ENV === "development" &&
+    typeof window !== "undefined" &&
+    (tld === "localhost" || tld.endsWith(".localhost"))
+  ) {
+    const seitenHost = window.location.hostname;
+    const istLokal = seitenHost === "localhost" || seitenHost.endsWith(".localhost");
+    const punkt = seitenHost.indexOf(".");
+    if (!istLokal && punkt > 0) {
+      // Am ersten Punkt teilen, weil die Engine Target + "." + TLD verklebt.
+      return {
+        targets: [seitenHost.slice(0, punkt)],
+        tld: seitenHost.slice(punkt + 1),
+      };
+    }
+  }
+  return { targets, tld };
+}
+
+const konfiguration = peerKonfiguration();
+const WS_TARGETS = konfiguration.targets;
+const WS_TLD = konfiguration.tld;
 const WS_PORT = process.env.NEXT_PUBLIC_IAS_WS_PORT ?? "8081";
 const WS_TLS = process.env.NEXT_PUBLIC_IAS_WS_TLS === "1" ? 1 : 0;
 
