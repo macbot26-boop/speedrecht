@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   PEER_HOST,
   useIasMeasurement,
 } from "@/lib/ias/use-ias-measurement";
 import type { ConnectionType, IasCompletedKpis } from "@/lib/ias/types";
+import { ANBIETER_SONSTIGE, FESTNETZ_ANBIETER } from "@/lib/netz/anbieter";
 
 const CONNECTION_OPTIONS: {
   value: ConnectionType;
@@ -39,6 +40,19 @@ const PHASE_LABELS: Record<string, string> = {
 
 type SaveState = "idle" | "saving" | "saved" | "failed";
 
+/** Antwort von GET /api/netz — in welchem Netz sind wir gerade? */
+interface NetzInfo {
+  anbieter: string | null;
+  kategorie: "festnetz" | "mobilfunk" | "hosting_vpn" | "unbekannt";
+}
+
+// Zusatzsignal mancher Browser (v. a. Android): sind wir im Mobilfunknetz?
+function zellularErkannt(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const verbindung = (navigator as { connection?: { type?: string } }).connection;
+  return verbindung?.type === "cellular";
+}
+
 function formatMbps(value: number | null): string {
   if (value === null) return "–";
   return value >= 100 ? Math.round(value).toString() : value.toFixed(1);
@@ -49,12 +63,37 @@ export function MessungFlow() {
     useIasMeasurement();
   const [connection, setConnection] = useState<ConnectionType | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [netz, setNetz] = useState<NetzInfo | null>(null);
   const savedForResult = useRef<IasCompletedKpis | null>(null);
+
+  // Einmal beim Öffnen: In welchem Netz sind wir? (Für Warnhinweise vor der
+  // Messung und den Anbieter-Vorschlag nach dem Ergebnis.)
+  useEffect(() => {
+    let aktiv = true;
+    // ?test_ip=… wird nur in der lokalen Entwicklung vom Server beachtet —
+    // damit lassen sich alle Anbieter-Fälle ohne echte Anschlüsse durchspielen.
+    const testIp = new URLSearchParams(window.location.search).get("test_ip");
+    fetch(`/api/netz${testIp ? `?test_ip=${encodeURIComponent(testIp)}` : ""}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((info: NetzInfo | null) => {
+        if (aktiv && info) setNetz(info);
+      })
+      .catch(() => {});
+    return () => {
+      aktiv = false;
+    };
+  }, []);
+
+  const mobilfunk = netz?.kategorie === "mobilfunk" || zellularErkannt();
+  const vpnOderHosting = netz?.kategorie === "hosting_vpn";
+  const erkanntFestnetz = netz?.kategorie === "festnetz" ? netz.anbieter : null;
 
   const begin = useCallback(
     (c: ConnectionType) => {
       setConnection(c);
       setSaveState("idle");
+      setSavedId(null);
       void start();
     },
     [start]
@@ -87,7 +126,21 @@ export function MessungFlow() {
         peer: PEER_HOST,
       }),
     })
-      .then((res) => setSaveState(res.ok ? "saved" : "failed"))
+      .then(async (res) => {
+        if (!res.ok) {
+          setSaveState("failed");
+          return;
+        }
+        // Die Antwort enthält die anonyme Messungs-Nummer — sie brauchen
+        // wir gleich für die Ein-Tap-Anbieterbestätigung.
+        const data: unknown = await res.json().catch(() => null);
+        const id =
+          data && typeof data === "object" && "id" in data && typeof data.id === "string"
+            ? data.id
+            : null;
+        setSavedId(id);
+        setSaveState("saved");
+      })
       .catch(() => setSaveState("failed"));
   }, [phase, result, connection]);
 
@@ -105,6 +158,21 @@ export function MessungFlow() {
             dem Tippen und dauert etwa eine halbe Minute.
           </p>
         </div>
+        {vpnOderHosting && (
+          <Warnkarte titel="VPN oder Firmennetz erkannt.">
+            Deine Verbindung läuft gerade über ein Rechenzentrum (z. B. VPN,
+            iCloud Privat-Relay oder Firmennetz). So misst du das VPN — nicht
+            deinen Anschluss. Am besten kurz ausschalten und neu laden; messen
+            kannst du trotzdem.
+          </Warnkarte>
+        )}
+        {mobilfunk && (
+          <Warnkarte titel="Mobilfunk erkannt.">
+            Du bist gerade über das Handynetz unterwegs (z. B. Hotspot). Über
+            Mobilfunk sagt die Messung nichts über deinen Festnetzanschluss
+            aus. Für den Anschluss-Check: zu Hause ins WLAN oder ans Kabel.
+          </Warnkarte>
+        )}
         <div className="flex w-full flex-col gap-3">
           {CONNECTION_OPTIONS.map((opt) => (
             <button
@@ -225,7 +293,21 @@ export function MessungFlow() {
               aussagekräftigste Art, im Browser zu messen.
             </div>
           )}
+          {vpnOderHosting && (
+            <Warnkarte titel="Über VPN/Firmennetz gemessen.">
+              Das Ergebnis kann durch den Umweg verfälscht sein — für einen
+              Anschluss-Check bitte ohne VPN messen.
+            </Warnkarte>
+          )}
+          {mobilfunk && (
+            <Warnkarte titel="Über Mobilfunk gemessen.">
+              Dieses Ergebnis beschreibt das Handynetz, nicht deinen
+              Festnetzanschluss.
+            </Warnkarte>
+          )}
         </div>
+
+        <AnbieterBestaetigung erkannt={erkanntFestnetz} messungId={savedId} />
 
         <div className="flex flex-col items-center gap-2">
           <button
@@ -295,6 +377,115 @@ export function MessungFlow() {
       <p className="text-xs text-zinc-400 dark:text-zinc-500">
         Bitte lass diese Seite offen — die Messung dauert etwa 30 Sekunden.
       </p>
+    </div>
+  );
+}
+
+function Warnkarte({ titel, children }: { titel: string; children: ReactNode }) {
+  return (
+    <div className="w-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+      <span className="font-semibold">{titel}</span> {children}
+    </div>
+  );
+}
+
+// „Dein Netz: Vodafone — stimmt das?“ — Ein-Tap-Bestätigung des Anbieters.
+// Erscheint nur, wenn das Ergebnis gespeichert wurde (sonst gibt es nichts,
+// woran die Bestätigung hängen könnte).
+function AnbieterBestaetigung({
+  erkannt,
+  messungId,
+}: {
+  erkannt: string | null;
+  messungId: string | null;
+}) {
+  const [status, setStatus] = useState<
+    "offen" | "liste" | "sendet" | "fertig" | "fehler"
+  >("offen");
+  const [gewaehlt, setGewaehlt] = useState<string | null>(null);
+
+  if (!messungId) return null;
+
+  const bestaetigen = (anbieter: string) => {
+    setGewaehlt(anbieter);
+    setStatus("sendet");
+    fetch("/api/messungen/bestaetigen", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: messungId, anbieter }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { ok?: boolean } | null) =>
+        setStatus(data?.ok ? "fertig" : "fehler")
+      )
+      .catch(() => setStatus("fehler"));
+  };
+
+  if (status === "fertig") {
+    return (
+      <p className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left text-sm leading-6 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
+        ✓ Danke — <span className="font-semibold">{gewaehlt}</span> als dein
+        Anbieter vermerkt (weiterhin anonym).
+      </p>
+    );
+  }
+  if (status === "fehler") {
+    return (
+      <p className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-left text-sm leading-6 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+        Dein Anbieter konnte gerade nicht vermerkt werden — für deine Messung
+        oben ändert das nichts.
+      </p>
+    );
+  }
+
+  const listeZeigen = status === "liste" || !erkannt;
+
+  return (
+    <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left dark:border-zinc-800 dark:bg-zinc-950">
+      {listeZeigen ? (
+        <>
+          <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+            <span className="font-semibold">Wer ist dein Internetanbieter?</span>{" "}
+            Ein Tap genügt — das hilft, Messungen je Anbieter einzuordnen
+            (weiterhin anonym).
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {[...FESTNETZ_ANBIETER, ANBIETER_SONSTIGE].map((anbieter) => (
+              <button
+                key={anbieter}
+                disabled={status === "sendet"}
+                onClick={() => bestaetigen(anbieter)}
+                className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+              >
+                {anbieter}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+            <span className="font-semibold">Dein Netz: {erkannt}.</span> Ist das
+            dein Internetanbieter?
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              disabled={status === "sendet"}
+              onClick={() => erkannt && bestaetigen(erkannt)}
+              className="rounded-full bg-[#0b57d0] px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+            >
+              Ja, mein Anbieter
+            </button>
+            <button
+              disabled={status === "sendet"}
+              onClick={() => setStatus("liste")}
+              className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+            >
+              Nein, anderer …
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
