@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Ergebnisse · Messwerkstatt</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#0b57d0">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Ergebnisse</h1>
+      <p class="sub">Alle gespeicherten Messungen und der Vergleich zur Referenz.</p>
+    </header>
+
+    <section class="card">
+      <h2 style="margin-top:0">Zusammenfassung <span class="hint" id="ref-label"></span></h2>
+      <p class="hint">Median je Kombination aus Quelle, Gerät, Netz und Engine. „vs. Ref." = Median im
+        Verhältnis zur verkabelten Referenzmessung vom Mac.</p>
+      <div class="table-wrap">
+        <table id="summary">
+          <thead>
+            <tr>
+              <th>Quelle</th><th>Gerät</th><th>Netz</th><th>Engine</th>
+              <th class="num">n</th>
+              <th class="num">↓ Median</th><th class="num">↑ Median</th><th class="num">Ping</th>
+              <th class="num">↓ min–max</th>
+              <th class="num">↓ vs. Ref.</th><th class="num">↑ vs. Ref.</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 style="margin-top:0">Einzelmessungen <span class="hint" id="count"></span></h2>
+      <div class="table-wrap">
+        <table id="raw">
+          <thead>
+            <tr>
+              <th>Zeit</th><th>Quelle</th><th>Gerät</th><th>Netz</th><th>Engine</th>
+              <th class="num">↓ Mbit/s</th><th class="num">↑ Mbit/s</th>
+              <th class="num">Ping ms</th><th class="num">Jitter ms</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <nav class="links">
+      <a href="/">Zur Messung</a>
+      <a href="/check">Minderungs-Check</a>
+      <a href="/api/results.csv" download="messwerkstatt.csv">CSV herunterladen</a>
+    </nav>
+  </main>
+
+  <script>
+    (async () => {
+      const fmt = (x) => {
+        const n = Number(x);
+        return x == null || !Number.isFinite(n) ? '–' : n >= 100 ? n.toFixed(0) : n.toFixed(1);
+      };
+      const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const pctCell = (p) => {
+        if (p == null) return '<td class="num">–</td>';
+        const cls = p >= 90 ? 'good' : p < 70 ? 'bad' : '';
+        return `<td class="num ${cls}">${fmt(p)} %</td>`;
+      };
+
+      const [summary, results] = await Promise.all([
+        fetch('/api/summary').then((r) => r.json()),
+        fetch('/api/results').then((r) => r.json()),
+      ]);
+
+      document.querySelector('#ref-label').textContent =
+        summary.reference ? `· Referenz: ${summary.reference}` : '· noch keine Referenzmessung';
+
+      document.querySelector('#summary tbody').innerHTML = summary.rows
+        .sort((a, b) => (b.down_median ?? 0) - (a.down_median ?? 0))
+        .map((r) => `<tr>
+          <td>${esc(r.source)}</td><td>${esc(r.device)}</td><td>${esc(r.network)}</td><td>${esc(r.engine)}</td>
+          <td class="num">${r.n}</td>
+          <td class="num">${fmt(r.down_median)}</td><td class="num">${fmt(r.up_median)}</td><td class="num">${fmt(r.latency_median)}</td>
+          <td class="num">${fmt(r.down_min)}–${fmt(r.down_max)}</td>
+          ${pctCell(r.down_vs_ref_pct)}${pctCell(r.up_vs_ref_pct)}
+        </tr>`).join('') || '<tr><td colspan="11" class="hint">Noch keine Messungen.</td></tr>';
+
+      const MAX = 200;
+      const rows = results.slice().reverse();
+      document.querySelector('#count').textContent =
+        `· ${results.length} gesamt${results.length > MAX ? `, neueste ${MAX} angezeigt` : ''}`;
+      document.querySelector('#raw tbody').innerHTML = rows.slice(0, MAX)
+        .map((r) => `<tr>
+          <td>${new Date(r.ts).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}</td>
+          <td>${esc(r.source)}</td><td>${esc(r.device)}</td><td>${esc(r.network)}</td><td>${esc(r.engine)}</td>
+          <td class="num">${fmt(r.down_mbps)}</td><td class="num">${fmt(r.up_mbps)}</td>
+          <td class="num">${fmt(r.latency_ms)}</td><td class="num">${fmt(r.jitter_ms)}</td>
+        </tr>`).join('') || '<tr><td colspan="9" class="hint">Noch keine Messungen.</td></tr>';
+    })();
+  </script>
+</body>
+</html>

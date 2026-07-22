@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Speed-Check · Messwerkstatt</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0b57d0">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Speed-Check <span class="badge">Prototyp</span></h1>
+      <p class="sub">Browser-Messung deiner Internet-Geschwindigkeit — Teil der Mess-Validierung.</p>
+    </header>
+
+    <section class="card">
+      <div class="field">
+        <label for="device">Gerät</label>
+        <input id="device" type="text" placeholder="z. B. iPhone von Henry">
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="network">Verbindung</label>
+          <select id="network">
+            <option value="wlan">WLAN</option>
+            <option value="lan">LAN-Kabel</option>
+            <option value="mobilfunk">Mobilfunk</option>
+            <option value="unbekannt">Unbekannt</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Mess-Engines</label>
+          <div class="checks">
+            <label class="check"><input type="checkbox" id="eng-cf" checked> Cloudflare</label>
+            <label class="check"><input type="checkbox" id="eng-eigen" checked> Eigene</label>
+          </div>
+        </div>
+      </div>
+      <button id="start" class="primary">Messung starten</button>
+      <p id="status" class="status" hidden></p>
+    </section>
+
+    <section id="results"></section>
+
+    <section class="card note">
+      <strong>Wichtig:</strong> Für den <em>rechtsgültigen</em> Nachweis gegenüber deinem Anbieter zählt
+      ausschließlich die offizielle <a href="https://breitbandmessung.de" target="_blank" rel="noopener">Breitbandmessung
+      Desktop-App</a> der Bundesnetzagentur (Messung per LAN-Kabel). Diese Seite dient der schnellen
+      Voreinschätzung und der Mess-Validierung.
+    </section>
+
+    <nav class="links">
+      <a href="/ergebnisse">Alle Ergebnisse</a>
+      <a href="/check">Minderungs-Check</a>
+    </nav>
+  </main>
+  <script src="/vendor/cf-speedtest.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

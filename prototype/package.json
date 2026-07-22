@@ -1,0 +1,21 @@
+{
+  "name": "breitband-messwerkstatt",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Validierungs-Setup: Wie gut kann eine Browser-/PWA-Speedmessung im Vergleich zur LAN-Referenz sein?",
+  "scripts": {
+    "start": "node server.mjs",
+    "build:engine": "esbuild src/engine-entry.js --bundle --minify --format=iife --outfile=public/vendor/cf-speedtest.js",
+    "reference": "node scripts/reference.mjs",
+    "qr": "node scripts/qr.mjs"
+  },
+  "dependencies": {
+    "@cloudflare/speedtest": "^1.1.0",
+    "express": "^4.19.2",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2"
+  }
+}

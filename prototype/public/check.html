@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Minderungs-Check · Messwerkstatt</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#0b57d0">
+  <style>
+    .crit { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    .crit:last-child { border-bottom: none; }
+    .crit .icon { flex: 0 0 auto; }
+    .crit .t { font-weight: 600; }
+    .verdict { font-size: 1rem; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Minderungs-Check</h1>
+      <p class="sub">Voreinschätzung: Deutet die bisherige Datenlage auf eine „erhebliche Abweichung"
+        von den Vertragswerten hin (§ 57 Abs. 4 TKG)?</p>
+    </header>
+
+    <section class="card">
+      <h2 style="margin-top:0">Vertragswerte (Mbit/s)</h2>
+      <p class="hint">Die drei Geschwindigkeiten stehen im <em>Produktinformationsblatt</em> deines Tarifs.</p>
+      <div class="row">
+        <div class="field"><label for="down-max">Download maximal</label>
+          <input id="down-max" type="number" min="0" step="any" placeholder="z. B. 100"></div>
+        <div class="field"><label for="down-norm">Download üblicherweise</label>
+          <input id="down-norm" type="number" min="0" step="any" placeholder="z. B. 83"></div>
+        <div class="field"><label for="down-min">Download minimal</label>
+          <input id="down-min" type="number" min="0" step="any" placeholder="z. B. 54"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="up-max">Upload maximal</label>
+          <input id="up-max" type="number" min="0" step="any" placeholder="z. B. 40"></div>
+        <div class="field"><label for="up-norm">Upload üblicherweise</label>
+          <input id="up-norm" type="number" min="0" step="any" placeholder="z. B. 33"></div>
+        <div class="field"><label for="up-min">Upload minimal</label>
+          <input id="up-min" type="number" min="0" step="any" placeholder="z. B. 21"></div>
+      </div>
+      <div class="field">
+        <label>Messungen berücksichtigen aus</label>
+        <div class="checks">
+          <label class="check"><input type="checkbox" id="net-lan" checked> LAN</label>
+          <label class="check"><input type="checkbox" id="net-wlan" checked> WLAN</label>
+          <label class="check"><input type="checkbox" id="net-mobilfunk"> Mobilfunk</label>
+          <label class="check"><input type="checkbox" id="net-unbekannt" checked> Unbekannt</label>
+        </div>
+        <p class="hint">Mobilfunk-Messungen sagen nichts über den Festnetz-Anschluss aus und bleiben
+          deshalb standardmäßig außen vor. WLAN kann bremsen — aussagekräftig sind vor allem LAN-Messungen.</p>
+      </div>
+      <button id="run" class="primary">Auswerten</button>
+    </section>
+
+    <section id="out"></section>
+
+    <section class="card note">
+      <strong>Wichtig:</strong> Diese Auswertung ist nur eine grobe Voreinschätzung auf Basis deiner
+      eigenen Messungen. Rechtlich zählt allein die Messkampagne der
+      <a href="https://breitbandmessung.de" target="_blank" rel="noopener">Breitbandmessung Desktop-App</a>
+      der Bundesnetzagentur: 30 Messungen per LAN-Kabel an 3 Kalendertagen (je 10 Messungen).
+      Ergibt die offizielle Kampagne eine erhebliche Abweichung, kannst du das Entgelt mindern oder
+      außerordentlich kündigen.
+    </section>
+
+    <nav class="links">
+      <a href="/">Zur Messung</a>
+      <a href="/ergebnisse">Alle Ergebnisse</a>
+    </nav>
+  </main>
+
+  <script>
+    (() => {
+      const $ = (s) => document.querySelector(s);
+      const IDS = ['down-max', 'down-norm', 'down-min', 'up-max', 'up-norm', 'up-min'];
+
+      // Vertragswerte aus dem letzten Besuch übernehmen
+      try {
+        const saved = JSON.parse(localStorage.getItem('vertrag') || '{}');
+        for (const id of IDS) if (saved[id]) $('#' + id).value = saved[id];
+      } catch { /* egal */ }
+
+      const val = (id) => {
+        const n = parseFloat(String($('#' + id).value).replace(',', '.'));
+        return Number.isFinite(n) && n > 0 ? n : null;
+      };
+      const fmt = (x) => (x == null ? '–' : x >= 100 ? x.toFixed(0) : x.toFixed(1));
+      const pct = (x) => (x * 100).toFixed(0) + ' %';
+      const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+      // Messwerte einer Richtung nach Kalendertagen gruppieren und Kennzahlen bilden
+      function auswerten(werte /* [{v, tag}] */, vertrag /* {max, norm, min} */) {
+        const tage = new Map();
+        for (const m of werte) {
+          if (!tage.has(m.tag)) tage.set(m.tag, []);
+          tage.get(m.tag).push(m.v);
+        }
+        let tage90 = 0, tageUnterMin = 0;
+        for (const vs of tage.values()) {
+          if (vertrag.max != null && Math.max(...vs) >= 0.9 * vertrag.max) tage90++;
+          if (vertrag.min != null && Math.min(...vs) < vertrag.min) tageUnterMin++;
+        }
+        const n = werte.length;
+        const anteilNorm = vertrag.norm != null && n
+          ? werte.filter((m) => m.v >= vertrag.norm).length / n : null;
+        return { n, nTage: tage.size, tageOhne90: tage.size - tage90, tageUnterMin, anteilNorm };
+      }
+
+      // Die drei BNetzA-Kriterien für eine „erhebliche Abweichung" — als Anzeichen formuliert
+      function kriterien(e, vertrag) {
+        const out = [];
+        if (vertrag.max == null) {
+          out.push(['info', '90-%-Kriterium', 'Kein Maximalwert eingetragen.']);
+        } else if (e.nTage < 3) {
+          out.push(['info', '90-%-Kriterium', `Erst ${e.nTage} Messtag(e) — für dieses Kriterium braucht es mindestens 3 verschiedene Tage.`]);
+        } else {
+          out.push([e.tageOhne90 >= 2 ? 'warn' : 'ok', '90-%-Kriterium',
+            `An ${e.tageOhne90} von ${e.nTage} Messtagen wurden 90 % vom Maximum (${fmt(0.9 * vertrag.max)} Mbit/s) nie erreicht. Auffällig ab 2 Tagen.`]);
+        }
+        if (vertrag.norm == null) {
+          out.push(['info', 'Üblich-Kriterium', 'Kein Wert für „üblicherweise" eingetragen.']);
+        } else if (e.n < 10) {
+          out.push(['info', 'Üblich-Kriterium', `Erst ${e.n} Messung(en) — eine Aussage ist ab etwa 10 sinnvoll.`]);
+        } else {
+          out.push([e.anteilNorm < 0.9 ? 'warn' : 'ok', 'Üblich-Kriterium',
+            `${pct(e.anteilNorm)} der Messungen erreichen die übliche Geschwindigkeit (${fmt(vertrag.norm)} Mbit/s) — gefordert sind 90 %.`]);
+        }
+        if (vertrag.min == null) {
+          out.push(['info', 'Minimal-Kriterium', 'Kein Minimalwert eingetragen.']);
+        } else if (e.nTage < 3) {
+          out.push(['info', 'Minimal-Kriterium', `Erst ${e.nTage} Messtag(e) — für dieses Kriterium braucht es mindestens 3 verschiedene Tage.`]);
+        } else {
+          out.push([e.tageUnterMin >= 2 ? 'warn' : 'ok', 'Minimal-Kriterium',
+            `An ${e.tageUnterMin} von ${e.nTage} Messtagen wurde das Minimum (${fmt(vertrag.min)} Mbit/s) unterschritten. Auffällig ab 2 Tagen.`]);
+        }
+        return out;
+      }
+
+      const ICON = { warn: '⚠️', ok: '✓', info: 'ℹ️' };
+      const CLS = { warn: 'bad', ok: 'good', info: '' };
+
+      function block(titel, e, rows) {
+        return `<section class="card">
+          <h2 style="margin-top:0">${titel} <span class="hint">· ${e.n} Messungen an ${e.nTage} Tag(en)</span></h2>
+          ${rows.map(([s, t, txt]) => `<div class="crit">
+            <span class="icon ${CLS[s]}">${ICON[s]}</span>
+            <span><span class="t">${esc(t)}:</span> ${esc(txt)}</span>
+          </div>`).join('')}
+        </section>`;
+      }
+
+      async function run() {
+        const saved = {};
+        for (const id of IDS) saved[id] = $('#' + id).value;
+        localStorage.setItem('vertrag', JSON.stringify(saved));
+
+        const vDown = { max: val('down-max'), norm: val('down-norm'), min: val('down-min') };
+        const vUp = { max: val('up-max'), norm: val('up-norm'), min: val('up-min') };
+        if ([vDown, vUp].every((v) => v.max == null && v.norm == null && v.min == null)) {
+          $('#out').innerHTML = '<section class="card"><p class="hint">Bitte zuerst mindestens einen Vertragswert eintragen.</p></section>';
+          return;
+        }
+
+        const netze = ['lan', 'wlan', 'mobilfunk', 'unbekannt'].filter((n) => $('#net-' + n).checked);
+        const alle = await fetch('/api/results').then((r) => r.json());
+        const nutzbar = alle.filter((r) => netze.includes(r.network));
+        if (!nutzbar.length) {
+          $('#out').innerHTML = '<section class="card"><p class="hint">Noch keine passenden Messungen vorhanden. Erst ein paar Messungen durchführen.</p></section>';
+          return;
+        }
+
+        const tag = (r) => new Date(r.ts).toLocaleDateString('de-DE');
+        const down = nutzbar.filter((r) => Number.isFinite(r.down_mbps)).map((r) => ({ v: r.down_mbps, tag: tag(r) }));
+        const up = nutzbar.filter((r) => Number.isFinite(r.up_mbps)).map((r) => ({ v: r.up_mbps, tag: tag(r) }));
+
+        const eDown = auswerten(down, vDown);
+        const eUp = auswerten(up, vUp);
+        const kDown = kriterien(eDown, vDown);
+        const kUp = kriterien(eUp, vUp);
+
+        const status = [...kDown, ...kUp].map(([s]) => s);
+        let verdict;
+        if (status.includes('warn')) {
+          verdict = `<section class="card"><p class="verdict bad">⚠️ Es gibt Anzeichen für eine Minderleistung.</p>
+            <p class="hint">Nächster Schritt: die offizielle Messkampagne mit der Breitbandmessung
+            Desktop-App durchführen — per LAN-Kabel, 30 Messungen an 3 Tagen. Nur die zählt rechtlich.</p></section>`;
+        } else if (status.includes('ok')) {
+          verdict = `<section class="card"><p class="verdict good">✓ Keine Auffälligkeiten in den bisherigen Daten.</p>
+            <p class="hint">Die ausgewerteten Messungen liegen im Rahmen der Vertragswerte. Für ein belastbares
+            Bild an mehreren Tagen messen.</p></section>`;
+        } else {
+          verdict = `<section class="card"><p class="verdict">ℹ️ Noch zu wenige Daten für eine Einschätzung.</p>
+            <p class="hint">Ideal: an mindestens 3 verschiedenen Tagen jeweils mehrere Messungen durchführen.</p></section>`;
+        }
+
+        $('#out').innerHTML = verdict + block('Download', eDown, kDown) + block('Upload', eUp, kUp);
+      }
+
+      $('#run').addEventListener('click', run);
+      // Falls Vertragswerte gespeichert sind: direkt auswerten
+      if (IDS.some((id) => val(id) != null)) run();
+    })();
+  </script>
+</body>
+</html>

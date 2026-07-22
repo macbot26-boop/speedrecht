@@ -1,0 +1,23 @@
+# Abhängigkeiten
+node_modules/
+
+# Build-Artefakte
+.next/
+out/
+prototype/public/vendor/
+
+# Umgebungsvariablen & Secrets — niemals committen
+.env
+.env.*
+
+# Vercel
+.vercel
+
+# Private Strategie-Dokumente (bewusst nicht veröffentlicht)
+docs/
+
+# Lokale Messdaten (persönlich)
+prototype/data/
+
+# macOS
+.DS_Store
