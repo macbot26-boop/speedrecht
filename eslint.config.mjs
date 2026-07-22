@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Messwerkstatt-Labor: eigenständiges Plain-JS-Projekt, nicht Teil der App
     "prototype/**",
+    // Offizielle Messbibliothek: Upstream-Dateien bleiben unverändert
+    // (siehe public/ias/PROVENANCE.md) und werden deshalb nicht gelintet
+    "public/ias/**",
   ]),
 ]);
 
