@@ -1,0 +1,10 @@
+# Lokaler Messserver für die Entwicklung:  docker compose up -d
+# Danach ist der Peer unter ws://dev.localhost:8081 erreichbar
+# (Browser lösen *.localhost immer auf die eigene Maschine auf).
+services:
+  ias-peer:
+    build: .
+    container_name: speedrecht-dev-peer
+    ports:
+      - "8081:80"
+    restart: unless-stopped
