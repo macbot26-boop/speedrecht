@@ -10,6 +10,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { erkennerAufbauen, ipParsen } from "./erkennung.ts";
+import { BESTAETIGBARE_ANBIETER } from "./anbieter.ts";
 
 // ---------------------------------------------------------------------------
 // 1. IP-Parser
@@ -124,6 +125,25 @@ test("Tabelle: alle Träger-Indizes gültig, beide Kategorien vertreten", () => 
   }
   const kategorien = new Set(echteDaten.traeger.map((t) => t.kategorie));
   assert.ok(kategorien.has("festnetz"));
+  assert.ok(kategorien.has("hosting_vpn"));
+});
+
+test("Tabelle: jeder Festnetz-Anbietername ist auch bestätigbar", () => {
+  // Der „Ja, mein Anbieter“-Tap schickt den ERKANNTEN Namen an den
+  // Bestätigungs-Endpoint, der nur die kanonische Liste akzeptiert. Eine
+  // Neu-Generierung darf diese Kopplung nie stillschweigend brechen.
+  for (const t of echteDaten.traeger) {
+    if (t.kategorie !== "festnetz") continue;
+    assert.ok(
+      BESTAETIGBARE_ANBIETER.has(t.anbieter),
+      `"${t.anbieter}" (AS${t.asn}) fehlt in BESTAETIGBARE_ANBIETER`
+    );
+  }
+});
+
+test("Tabelle: Mobilfunk und Hosting/VPN sind vertreten", () => {
+  const kategorien = new Set(echteDaten.traeger.map((t) => t.kategorie));
+  assert.ok(kategorien.has("mobilfunk"), "mobilfunk fehlt — Kuratierung prüfen");
   assert.ok(kategorien.has("hosting_vpn"));
 });
 

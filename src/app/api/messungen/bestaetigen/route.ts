@@ -7,8 +7,9 @@
 // Regeln erzwingt die Datenbank-Funktion confirm_provider).
 
 import { BESTAETIGBARE_ANBIETER } from "@/lib/netz/anbieter";
+import { jsonPostAblehnung } from "@/lib/herkunft";
 import { ipAusRequest } from "@/lib/netz/server";
-import { ratenBegrenzer } from "@/lib/rate-limit";
+import { ratenBegrenzer, ratenSchluessel } from "@/lib/rate-limit";
 
 const MAX_BODY_BYTES = 512;
 const UUID_MUSTER =
@@ -24,8 +25,11 @@ export async function POST(request: Request) {
     return Response.json({ error: "Speicherung nicht konfiguriert" }, { status: 503 });
   }
 
+  const ablehnung = jsonPostAblehnung(request, MAX_BODY_BYTES);
+  if (ablehnung) return ablehnung;
+
   // Nur zur Ratenbegrenzung — wird nicht gespeichert oder geloggt.
-  if (rateLimited(ipAusRequest(request) ?? "unknown")) {
+  if (rateLimited(ratenSchluessel(ipAusRequest(request)))) {
     return Response.json({ error: "Zu viele Anfragen" }, { status: 429 });
   }
 

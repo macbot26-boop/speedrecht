@@ -11,7 +11,8 @@
 // Der Schreibweg in die DB ist eine RPC-Funktion, die ein Server-Token
 // verlangt (MEASUREMENT_INGEST_TOKEN) — direkter Tabellenzugriff ist aus.
 
-import { ratenBegrenzer } from "@/lib/rate-limit";
+import { ratenBegrenzer, ratenSchluessel } from "@/lib/rate-limit";
+import { jsonPostAblehnung } from "@/lib/herkunft";
 import { ipAusRequest, netzErkennen } from "@/lib/netz/server";
 
 const MAX_BODY_BYTES = 4096;
@@ -49,10 +50,13 @@ export async function POST(request: Request) {
     return Response.json({ error: "Speicherung nicht konfiguriert" }, { status: 503 });
   }
 
+  const ablehnung = jsonPostAblehnung(request, MAX_BODY_BYTES);
+  if (ablehnung) return ablehnung;
+
   // Nur zur Ratenbegrenzung und Anbieter-Erkennung — die IP wird nicht
   // gespeichert und nicht geloggt.
   const clientIp = ipAusRequest(request);
-  if (rateLimited(clientIp ?? "unknown")) {
+  if (rateLimited(ratenSchluessel(clientIp))) {
     return Response.json({ error: "Zu viele Anfragen" }, { status: 429 });
   }
 

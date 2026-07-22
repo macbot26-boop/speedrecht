@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import {
   PEER_HOST,
   useIasMeasurement,
@@ -47,10 +54,27 @@ interface NetzInfo {
 }
 
 // Zusatzsignal mancher Browser (v. a. Android): sind wir im Mobilfunknetz?
+// Über useSyncExternalStore eingebunden: hydrationssicher (Server sagt
+// immer "nein") und reagiert live auf Netzwechsel.
+interface BrowserVerbindung {
+  type?: string;
+  addEventListener?: (typ: "change", cb: () => void) => void;
+  removeEventListener?: (typ: "change", cb: () => void) => void;
+}
+
+function browserVerbindung(): BrowserVerbindung | undefined {
+  if (typeof navigator === "undefined") return undefined;
+  return (navigator as { connection?: BrowserVerbindung }).connection;
+}
+
+function zellularAbo(callback: () => void): () => void {
+  const verbindung = browserVerbindung();
+  verbindung?.addEventListener?.("change", callback);
+  return () => verbindung?.removeEventListener?.("change", callback);
+}
+
 function zellularErkannt(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const verbindung = (navigator as { connection?: { type?: string } }).connection;
-  return verbindung?.type === "cellular";
+  return browserVerbindung()?.type === "cellular";
 }
 
 function formatMbps(value: number | null): string {
@@ -65,6 +89,7 @@ export function MessungFlow() {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [savedId, setSavedId] = useState<string | null>(null);
   const [netz, setNetz] = useState<NetzInfo | null>(null);
+  const zellular = useSyncExternalStore(zellularAbo, zellularErkannt, () => false);
   const savedForResult = useRef<IasCompletedKpis | null>(null);
 
   // Einmal beim Öffnen: In welchem Netz sind wir? (Für Warnhinweise vor der
@@ -85,7 +110,7 @@ export function MessungFlow() {
     };
   }, []);
 
-  const mobilfunk = netz?.kategorie === "mobilfunk" || zellularErkannt();
+  const mobilfunk = netz?.kategorie === "mobilfunk" || zellular;
   const vpnOderHosting = netz?.kategorie === "hosting_vpn";
   const erkanntFestnetz = netz?.kategorie === "festnetz" ? netz.anbieter : null;
 
@@ -94,6 +119,10 @@ export function MessungFlow() {
       setConnection(c);
       setSaveState("idle");
       setSavedId(null);
+      // Verspätete Speicher-Antworten der VORHERIGEN Messung dürfen ab jetzt
+      // nichts mehr setzen (sonst hinge die Anbieter-Bestätigung an der
+      // falschen Messung).
+      savedForResult.current = null;
       void start();
     },
     [start]
@@ -127,6 +156,7 @@ export function MessungFlow() {
       }),
     })
       .then(async (res) => {
+        if (savedForResult.current !== result) return; // veraltete Antwort
         if (!res.ok) {
           setSaveState("failed");
           return;
@@ -141,7 +171,10 @@ export function MessungFlow() {
         setSavedId(id);
         setSaveState("saved");
       })
-      .catch(() => setSaveState("failed"));
+      .catch(() => {
+        if (savedForResult.current !== result) return; // veraltete Antwort
+        setSaveState("failed");
+      });
   }, [phase, result, connection]);
 
   // ---- Schritt 1: Selbstauskunft (der eine Tap, der die Messung startet) ----

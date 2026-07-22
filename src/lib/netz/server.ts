@@ -16,8 +16,21 @@ export function netzErkennen(ip: string): Erkennung {
   return erkenner.erkennen(ip);
 }
 
-/** Client-IP aus dem Request lesen (Vercel/Proxy-Header, erster Eintrag). */
+/**
+ * Client-IP aus dem Request lesen.
+ *
+ * Vertrauens-Annahme (bewusst erzwungen): x-forwarded-for/x-real-ip sind
+ * gewöhnliche Header, die jeder Client fälschen kann. Auf Vercel ist ihnen
+ * zu trauen, weil die Plattform sie garantiert selbst mit der echten
+ * Verbindungs-IP überschreibt. Läuft die App woanders in Produktion,
+ * geben wir lieber null zurück (keine Erkennung, gemeinsame Ratenbremse),
+ * statt fälschbaren Headern zu glauben — Self-Hosting müsste diese
+ * Funktion an seinen Proxy anpassen.
+ */
 export function ipAusRequest(request: Request): string | null {
+  if (process.env.NODE_ENV === "production" && !process.env.VERCEL) {
+    return null;
+  }
   const weitergeleitet = request.headers.get("x-forwarded-for");
   if (weitergeleitet) {
     const erste = weitergeleitet.split(",")[0]?.trim();

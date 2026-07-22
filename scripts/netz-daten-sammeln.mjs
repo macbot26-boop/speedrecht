@@ -34,8 +34,10 @@ const KURATIERT = [
   { asn: 20880, anbieter: "PŸUR", kategorie: "festnetz", erwartet: /tele columbus|primacom|pyur|p.?ur/i },
 
   // — Mobilfunk (nur wo als eigenes Netz unterscheidbar; Kandidaten werden
-  //   durch die Holder-Validierung bestätigt oder verworfen) —
-  { asn: 12638, anbieter: "Telekom", kategorie: "mobilfunk", erwartet: /telekom|t-mobile/i },
+  //   durch die Holder-Validierung bestätigt oder verworfen). Telekom- und
+  //   Vodafone-Mobilfunk läuft über die gemeinsamen Festnetz-ASNs und ist
+  //   per ASN nicht unterscheidbar (Präfix-Kuratierung = Folgeaufgabe). —
+  { asn: 12638, anbieter: "o2", kategorie: "mobilfunk", erwartet: /telefonica|telefónica/i },
 
   // — Hosting / VPN-Austrittsnetze (für den ehrlichen Warnhinweis) —
   { asn: 24940, anbieter: "Hetzner", kategorie: "hosting_vpn", erwartet: /hetzner/i },
@@ -54,7 +56,8 @@ const KURATIERT = [
   { asn: 6724, anbieter: "Strato", kategorie: "hosting_vpn", erwartet: /strato/i },
   { asn: 8560, anbieter: "IONOS", kategorie: "hosting_vpn", erwartet: /ionos|1&1/i },
   { asn: 9009, anbieter: "M247", kategorie: "hosting_vpn", erwartet: /m247/i },
-  { asn: 31173, anbieter: "Mullvad", kategorie: "hosting_vpn", erwartet: /31173|mullvad/i },
+  { asn: 197141, anbieter: "Mullvad", kategorie: "hosting_vpn", erwartet: /mullvad/i },
+  { asn: 216025, anbieter: "Mullvad", kategorie: "hosting_vpn", erwartet: /mullvad/i },
   { asn: 60068, anbieter: "Datacamp", kategorie: "hosting_vpn", erwartet: /datacamp|cdn77/i },
 ];
 
@@ -85,9 +88,13 @@ const traeger = [];
 const netze = [];
 const verworfen = [];
 
+// Fremde Texte (Holder-Namen) vor der Terminal-Ausgabe von Steuerzeichen
+// befreien — eine bösartige Antwort soll keine Escape-Sequenzen einschleusen.
+const sauber = (text) => text.replace(/[\u0000-\u001f\u007f]/g, "");
+
 for (const eintrag of KURATIERT) {
   const uebersicht = await ripestat("as-overview", eintrag.asn);
-  const holder = (uebersicht?.holder ?? "").trim();
+  const holder = sauber((uebersicht?.holder ?? "").trim());
 
   if (!eintrag.erwartet.test(holder)) {
     verworfen.push({ asn: eintrag.asn, anbieter: eintrag.anbieter, holder });
@@ -116,8 +123,17 @@ for (const eintrag of KURATIERT) {
   await new Promise((r) => setTimeout(r, 300));
 }
 
+// Die Kuratierung ist statisch — JEDER Verwurf bedeutet einen Fehler in der
+// Liste oben und muss laut scheitern, statt still eine Lücke zu hinterlassen.
+// (Genau so wurden zwei falsch kuratierte ASNs gefunden.)
+if (verworfen.length > 0) {
+  console.error(
+    `❌ ${verworfen.length} ASN(s) verworfen — Kuratierung korrigieren. Abbruch ohne Schreiben.`
+  );
+  process.exit(1);
+}
 if (traeger.filter((t) => t.kategorie === "festnetz").length < 8) {
-  console.error("❌ Zu viele Festnetz-ASNs verworfen — Abbruch ohne Schreiben.");
+  console.error("❌ Zu wenige Festnetz-ASNs — Abbruch ohne Schreiben.");
   process.exit(1);
 }
 
@@ -132,6 +148,10 @@ if (traeger.filter((t) => t.kategorie === "festnetz").length < 8) {
 function cidrZuBereich(cidr) {
   const [adresse, laengeText] = cidr.split("/");
   const laenge = Number(laengeText);
+  const maxLaenge = adresse.includes(":") ? 128 : 32;
+  if (!Number.isInteger(laenge) || laenge < 0 || laenge > maxLaenge) {
+    throw new Error(`Ungültiger Präfix von RIPEstat: "${cidr}"`);
+  }
   if (adresse.includes(":")) {
     // IPv6 → 128-Bit-BigInt
     const [kopf, schwanz = ""] = adresse.split("::");
