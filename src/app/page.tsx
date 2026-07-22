@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -20,9 +21,16 @@ export default function Home() {
           </p>
         </div>
 
+        <Link
+          href="/messung"
+          className="rounded-full bg-[#0b57d0] px-8 py-4 text-lg font-semibold text-white shadow-sm transition hover:bg-blue-700"
+        >
+          Jetzt messen
+        </Link>
+
         <span className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-1.5 text-sm font-medium text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
           <span className="h-2 w-2 rounded-full bg-amber-500" aria-hidden />
-          In Entwicklung — noch nicht nutzbar
+          Frühe Testversion
         </span>
 
         <p className="max-w-md text-sm leading-6 text-zinc-500 dark:text-zinc-500">
