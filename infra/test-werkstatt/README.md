@@ -33,3 +33,8 @@ sh infra/test-werkstatt/start.sh
 
 Das Skript startet den Docker-Messserver und die App, zeigt die Handy-Adresse
 als QR-Code im Terminal und läuft, bis man `Ctrl+C` drückt.
+
+Mehr Einrichtung braucht es nicht: Die App erlaubt Heimnetz-Zugriffe im
+Entwicklungs-Modus automatisch (`allowedDevOrigins`) und zielt mit der
+Messung automatisch auf die Adresse, unter der die Seite geöffnet wurde —
+vom Handy aus also auf den Mac, nicht auf „localhost".
