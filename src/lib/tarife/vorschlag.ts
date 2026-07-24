@@ -10,6 +10,8 @@
 //
 // Pur gehalten (Daten als Parameter) — testbar ohne Bundler-Magie.
 
+import { aufAnzeige } from "./anzeige.ts";
+
 export interface Tarif {
   anbieter: string;
   slug: string;
@@ -38,6 +40,13 @@ export interface TarifVorschlag {
   tarif: Tarif;
   /** Wie viele Vertrags-Varianten es in dieser Klasse gibt. */
   varianten: number;
+  /**
+   * Zusatz zur Beschriftung, wo zwei Auswahl-Knöpfe sonst gleich aussähen —
+   * gleicher Name UND gleiche bis-zu-Rate, aber verschiedene Urteile.
+   * Nur gesetzt, wo er wirklich gebraucht wird, und nur so viel, wie zum
+   * Auseinanderhalten nötig ist.
+   */
+  unterscheidung?: { normalMbps?: number; minMbps?: number };
 }
 
 // Eine Bewertungs-Klasse: Tarife, die für den Vergleich gleichwertig sind —
@@ -50,10 +59,19 @@ interface Klasse {
   tarife: Tarif[];
 }
 
+// Auf Anzeige-Genauigkeit, nicht auf Rohwerte: Zwei Blätter desselben Tarifs
+// aus verschiedenen Jahrgängen schreiben mal "0,77", mal "0,768" Mbit/s. Auf
+// dem Schirm steht beide Male "0.8", und das Urteil ist dasselbe — als zwei
+// Auswahl-Knöpfe wären sie für niemanden unterscheidbar.
+function klassenSchluessel(tarif: Tarif): string {
+  const w = (n: number | null) => (n == null ? "-" : aufAnzeige(n));
+  return `${w(tarif.download_max_mbps)}|${w(tarif.download_normal_mbps)}|${w(tarif.download_min_mbps)}`;
+}
+
 function klassenBilden(tarife: Tarif[]): Klasse[] {
   const map = new Map<string, Tarif[]>();
   for (const tarif of tarife) {
-    const schluessel = `${tarif.download_max_mbps}|${tarif.download_normal_mbps}|${tarif.download_min_mbps}`;
+    const schluessel = klassenSchluessel(tarif);
     let liste = map.get(schluessel);
     if (!liste) {
       liste = [];
@@ -65,6 +83,52 @@ function klassenBilden(tarife: Tarif[]): Klasse[] {
     download_max_mbps: gruppe[0].download_max_mbps,
     tarife: gruppe,
   }));
+}
+
+/**
+ * Versieht Optionen, die in der Auswahl sonst gleich aussähen, mit dem Wert,
+ * der sie tatsächlich unterscheidet.
+ *
+ * Ohne das stünden bei o2 und 1&1 zwei identisch beschriftete Knöpfe
+ * nebeneinander ("1&1 Glasfaser 50 · bis zu 50"), die zu verschiedenen
+ * Urteilen führen — der Nutzer könnte nur raten, welcher seiner ist.
+ */
+function unterscheidbarMachen(vorschlaege: TarifVorschlag[]): TarifVorschlag[] {
+  const gruppen = new Map<string, TarifVorschlag[]>();
+  for (const v of vorschlaege) {
+    const etikett = `${v.tarif.tarifname}|${aufAnzeige(v.tarif.download_max_mbps)}`;
+    gruppen.set(etikett, [...(gruppen.get(etikett) ?? []), v]);
+  }
+
+  const angezeigt = (n: number | null) => (n == null ? "-" : aufAnzeige(n));
+  const alleVerschieden = (gruppe: TarifVorschlag[], werte: (v: TarifVorschlag) => string) =>
+    new Set(gruppe.map(werte)).size === gruppe.length;
+
+  for (const gruppe of gruppen.values()) {
+    if (gruppe.length < 2) continue;
+
+    // So wenig wie möglich anzeigen: "normalerweise" zuerst, weil das Urteil
+    // daran hängt. Reicht ein Wert nicht (drei Tarife, von denen sich zwei
+    // erst im Minimum unterscheiden), kommen beide dazu.
+    const nurNormal = alleVerschieden(gruppe, (v) => `${angezeigt(v.tarif.download_normal_mbps)}`);
+    const nurMin = alleVerschieden(gruppe, (v) => `${angezeigt(v.tarif.download_min_mbps)}`);
+
+    for (const v of gruppe) {
+      const normal = v.tarif.download_normal_mbps;
+      const min = v.tarif.download_min_mbps;
+      if (nurNormal) {
+        if (normal != null) v.unterscheidung = { normalMbps: normal };
+      } else if (nurMin) {
+        if (min != null) v.unterscheidung = { minMbps: min };
+      } else {
+        v.unterscheidung = {
+          ...(normal != null ? { normalMbps: normal } : {}),
+          ...(min != null ? { minMbps: min } : {}),
+        };
+      }
+    }
+  }
+  return vorschlaege;
 }
 
 // Repräsentant einer Klasse: der kürzeste Name (= Basis-Variante), bei
@@ -103,10 +167,12 @@ export function tarifVorschlaege(
     (a, b) => a.abstand - b.abstand || a.klasse.download_max_mbps - b.klasse.download_max_mbps
   );
 
-  return bewertet.slice(0, maxAnzahl).map(({ klasse }) => ({
-    tarif: waehleRepraesentant(klasse.tarife),
-    varianten: klasse.tarife.length,
-  }));
+  return unterscheidbarMachen(
+    bewertet.slice(0, maxAnzahl).map(({ klasse }) => ({
+      tarif: waehleRepraesentant(klasse.tarife),
+      varianten: klasse.tarife.length,
+    }))
+  );
 }
 
 /**
@@ -117,16 +183,18 @@ export function tarifKlassen(daten: TarifDaten, anbieter: string): TarifVorschla
   const passende = daten.tarife.filter((t) => t.anbieter === anbieter);
   if (passende.length === 0) return [];
 
-  return klassenBilden(passende)
-    .sort(
-      (a, b) =>
-        a.download_max_mbps - b.download_max_mbps ||
-        waehleRepraesentant(a.tarife).tarifname.localeCompare(
-          waehleRepraesentant(b.tarife).tarifname
-        )
-    )
-    .map((klasse) => ({
-      tarif: waehleRepraesentant(klasse.tarife),
-      varianten: klasse.tarife.length,
-    }));
+  return unterscheidbarMachen(
+    klassenBilden(passende)
+      .sort(
+        (a, b) =>
+          a.download_max_mbps - b.download_max_mbps ||
+          waehleRepraesentant(a.tarife).tarifname.localeCompare(
+            waehleRepraesentant(b.tarife).tarifname
+          )
+      )
+      .map((klasse) => ({
+        tarif: waehleRepraesentant(klasse.tarife),
+        varianten: klasse.tarife.length,
+      }))
+  );
 }

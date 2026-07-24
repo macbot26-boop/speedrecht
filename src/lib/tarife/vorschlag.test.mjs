@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { tarifVorschlaege, tarifKlassen } from "./vorschlag.ts";
+import { aufAnzeige, formatMbps } from "./anzeige.ts";
 
 const daten = JSON.parse(
   await readFile(new URL("./tarife.generated.json", import.meta.url), "utf8")
@@ -107,4 +108,133 @@ test("Vorschlag bei 85 Mbit/s bietet Telekom-100 als L UND M an (M-Kunde nicht a
 
 test("tarifKlassen für unbekannten Anbieter → leer", () => {
   assert.deepEqual(tarifKlassen(daten, "GibtEsNicht"), []);
+});
+
+// --- Neue Anbieter: die Tabelle deckt jetzt sechs Netze ab ----------------
+
+test("alle sechs Festnetz-Anbieter haben Tarife", () => {
+  for (const anbieter of ["Telekom", "Vodafone", "o2", "1&1", "PŸUR", "Deutsche Glasfaser"]) {
+    const k = tarifKlassen(daten, anbieter);
+    assert.ok(k.length > 0, `${anbieter} hat keine Tarife`);
+  }
+});
+
+test("Anbieter-Namen entsprechen exakt der kanonischen Liste", async () => {
+  // Nur bei Buchstabengleichheit findet der Ergebnis-Screen zum erkannten
+  // Anbieter auch die Tarife — sonst erschiene "noch nicht hinterlegt".
+  const { FESTNETZ_ANBIETER } = await import("../netz/anbieter.ts");
+  const bekannt = new Set(FESTNETZ_ANBIETER);
+  for (const t of daten.tarife) {
+    assert.ok(bekannt.has(t.anbieter), `unbekannter Anbieter-Name: "${t.anbieter}"`);
+  }
+});
+
+test("kein Tarif ohne Geschwindigkeit, keine unlogische Reihenfolge", () => {
+  for (const t of daten.tarife) {
+    assert.ok(t.download_max_mbps > 0, `${t.slug}: bis-zu-Rate 0`);
+    if (t.download_normal_mbps != null) {
+      assert.ok(t.download_normal_mbps <= t.download_max_mbps, `${t.slug}: normal > max`);
+    }
+    if (t.download_min_mbps != null && t.download_normal_mbps != null) {
+      assert.ok(t.download_min_mbps <= t.download_normal_mbps, `${t.slug}: min > normal`);
+    }
+  }
+});
+
+test("Bezeichner sind eindeutig — sie sind der Listen-Schlüssel der Auswahl", () => {
+  const slugs = daten.tarife.map((t) => t.slug);
+  assert.equal(new Set(slugs).size, slugs.length);
+});
+
+// --- Auswahl bleibt unterscheidbar ----------------------------------------
+
+// So beschriftet die Oberfläche einen Auswahl-Knopf. Bewusst mit dem ECHTEN
+// formatMbps statt einer Nachbildung: Der Test soll ja gerade merken, wenn
+// Anzeige und Klassenbildung auseinanderlaufen — eine Kopie der Rundung
+// bliebe genau dann grün, wenn sie es nicht dürfte.
+function knopfText(v) {
+  const zeig = formatMbps;
+  return (
+    `${v.tarif.tarifname} · bis zu ${zeig(v.tarif.download_max_mbps)}` +
+    (v.unterscheidung?.normalMbps != null ? `, normal ${zeig(v.unterscheidung.normalMbps)}` : "") +
+    (v.unterscheidung?.minMbps != null ? `, min ${zeig(v.unterscheidung.minMbps)}` : "")
+  );
+}
+
+test("keine zwei Auswahl-Knöpfe sehen gleich aus", () => {
+  // Sonst könnte der Nutzer nur raten, welcher Knopf sein Vertrag ist —
+  // und die beiden führen zu verschiedenen Urteilen.
+  for (const anbieter of ["Telekom", "Vodafone", "o2", "1&1", "PŸUR", "Deutsche Glasfaser"]) {
+    const texte = tarifKlassen(daten, anbieter).map(knopfText);
+    assert.equal(new Set(texte).size, texte.length, `${anbieter}: doppelte Beschriftung`);
+  }
+});
+
+test("auch die Vorschlagsliste bleibt über alle Messwerte eindeutig", () => {
+  for (const anbieter of ["Telekom", "Vodafone", "o2", "1&1", "PŸUR", "Deutsche Glasfaser"]) {
+    for (const gemessen of [3, 8, 16, 22, 40, 56, 95, 180, 240, 480, 900]) {
+      const texte = tarifVorschlaege(daten, anbieter, gemessen).map(knopfText);
+      assert.equal(new Set(texte).size, texte.length, `${anbieter} @ ${gemessen}`);
+    }
+  }
+});
+
+test("Unterscheidung steht nur da, wo sie gebraucht wird", () => {
+  // Bei der Telekom ist jeder Knopf schon durch Name + bis-zu eindeutig.
+  const k = tarifKlassen(daten, "Telekom");
+  assert.ok(k.some((v) => v.unterscheidung === undefined));
+});
+
+test("Werte, die sich erst hinter der Anzeige unterscheiden, gelten als ein Tarif", () => {
+  // 0,77 und 0,768 stehen beide als "0.8" auf dem Schirm und ergeben
+  // dasselbe Urteil — zwei Knöpfe daraus wären für niemanden trennbar.
+  const mini = {
+    stand: "2026-07-24",
+    quelle: "Test",
+    tarife: [0.77, 0.768].map((min, i) => ({
+      anbieter: "Test",
+      slug: `t${i}`,
+      tarifname: "Test 16",
+      zugang: null,
+      technologie: "dsl",
+      download_max_mbps: 16,
+      download_normal_mbps: 9.5,
+      download_min_mbps: min,
+      upload_max_mbps: 2,
+      upload_normal_mbps: 1,
+      upload_min_mbps: 0.1,
+      monatspreis_eur: 20,
+      quelle_url: "https://example.invalid/pib.pdf",
+      versionsstand: "2026-01-01",
+    })),
+  };
+  const k = tarifKlassen(mini, "Test");
+  assert.equal(k.length, 1);
+  assert.equal(k[0].varianten, 2);
+});
+
+// --- Anzeige-Rundung -------------------------------------------------------
+
+test("Anzeige und Klassen-Rundung stimmen an jeder Stelle überein", () => {
+  // Die Auswahl BÜNDELT Tarife über aufAnzeige, BESCHRIFTET sie aber über
+  // formatMbps. Liefen die beiden auseinander, sähen zwei Knöpfe gleich aus,
+  // gehörten aber zu verschiedenen Klassen — der Nutzer könnte nur raten,
+  // welcher sein Vertrag ist. Heikel sind die Grenzfälle knapp unter 100,
+  // wo die Regel von einer Nachkommastelle auf ganzzahlig umspringt.
+  const proben = [0.064, 0.768, 1.6, 9.5, 16, 49.96, 83.75, 83.8, 99.94, 99.96, 100, 128, 249.5, 1000];
+  for (const wert of proben) {
+    assert.equal(formatMbps(wert), formatMbps(aufAnzeige(wert)), `${wert} rundet uneinheitlich`);
+  }
+  assert.equal(formatMbps(99.96), "100");
+  assert.equal(aufAnzeige(99.96), 100);
+  assert.equal(formatMbps(83.75), "83.8");
+  assert.equal(formatMbps(null), "–");
+});
+
+test("jeder Wert der echten Tabelle wird einheitlich gerundet", () => {
+  for (const t of daten.tarife) {
+    for (const feld of ["download_max_mbps", "download_normal_mbps", "download_min_mbps"]) {
+      assert.equal(formatMbps(t[feld]), formatMbps(aufAnzeige(t[feld])), `${t.slug}.${feld}`);
+    }
+  }
 });
