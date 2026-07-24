@@ -40,9 +40,44 @@ export interface TarifVorschlag {
   varianten: number;
 }
 
+// Eine Bewertungs-Klasse: Tarife, die für den Vergleich gleichwertig sind —
+// gleiche bis-zu-, normalerweise- UND Minimum-Rate. Reine Namensvarianten
+// (z. B. "L" vs. "L Flex") werden zusammengefasst; Tarife mit anderen Werten
+// (z. B. "L" 83,8 vs. "M" 83,3 bei derselben bis-zu-Rate 100) bleiben getrennt
+// — sonst stünde ein falscher Name oder ein falsches Urteil auf dem Schirm.
+interface Klasse {
+  download_max_mbps: number;
+  tarife: Tarif[];
+}
+
+function klassenBilden(tarife: Tarif[]): Klasse[] {
+  const map = new Map<string, Tarif[]>();
+  for (const tarif of tarife) {
+    const schluessel = `${tarif.download_max_mbps}|${tarif.download_normal_mbps}|${tarif.download_min_mbps}`;
+    let liste = map.get(schluessel);
+    if (!liste) {
+      liste = [];
+      map.set(schluessel, liste);
+    }
+    liste.push(tarif);
+  }
+  return [...map.values()].map((gruppe) => ({
+    download_max_mbps: gruppe[0].download_max_mbps,
+    tarife: gruppe,
+  }));
+}
+
+// Repräsentant einer Klasse: der kürzeste Name (= Basis-Variante), bei
+// Gleichstand alphabetisch nach slug — deterministisch.
+function waehleRepraesentant(tarife: Tarif[]): Tarif {
+  return [...tarife].sort(
+    (a, b) => a.tarifname.length - b.tarifname.length || a.slug.localeCompare(b.slug)
+  )[0];
+}
+
 /**
- * Schlägt bis zu `maxAnzahl` Geschwindigkeits-Klassen des Anbieters vor,
- * sortiert nach Nähe zur gemessenen Download-Geschwindigkeit.
+ * Schlägt bis zu `maxAnzahl` Bewertungs-Klassen des Anbieters vor, sortiert
+ * nach Nähe zur gemessenen Download-Geschwindigkeit.
  */
 export function tarifVorschlaege(
   daten: TarifDaten,
@@ -55,29 +90,43 @@ export function tarifVorschlaege(
   const passende = daten.tarife.filter((t) => t.anbieter === anbieter);
   if (passende.length === 0) return [];
 
-  // Klassen bilden: ein Eintrag pro Maximal-Download.
-  const klassen = new Map<number, Tarif[]>();
-  for (const tarif of passende) {
-    const liste = klassen.get(tarif.download_max_mbps) ?? [];
-    liste.push(tarif);
-    klassen.set(tarif.download_max_mbps, liste);
-  }
-
   // Abstand auf Log-Skala (16 vs. 25 ist "näher" als 1000 vs. 2000 linear);
   // Klassen UNTER dem Messwert bekommen einen Malus — der eigene Vertrag
   // liegt praktisch nie unter dem, was man tatsächlich misst.
-  const bewertet = [...klassen.entries()].map(([maxMbps, tarife]) => {
-    let abstand = Math.abs(Math.log(maxMbps / gemessenMbps));
-    if (maxMbps < gemessenMbps) abstand *= 2.5;
-    return { maxMbps, tarife, abstand };
+  const bewertet = klassenBilden(passende).map((klasse) => {
+    let abstand = Math.abs(Math.log(klasse.download_max_mbps / gemessenMbps));
+    if (klasse.download_max_mbps < gemessenMbps) abstand *= 2.5;
+    return { klasse, abstand };
   });
 
-  bewertet.sort((a, b) => a.abstand - b.abstand || a.maxMbps - b.maxMbps);
+  bewertet.sort(
+    (a, b) => a.abstand - b.abstand || a.klasse.download_max_mbps - b.klasse.download_max_mbps
+  );
 
-  return bewertet.slice(0, maxAnzahl).map(({ tarife }) => {
-    const repraesentant = [...tarife].sort(
-      (a, b) => a.tarifname.length - b.tarifname.length || a.slug.localeCompare(b.slug)
-    )[0];
-    return { tarif: repraesentant, varianten: tarife.length };
-  });
+  return bewertet.slice(0, maxAnzahl).map(({ klasse }) => ({
+    tarif: waehleRepraesentant(klasse.tarife),
+    varianten: klasse.tarife.length,
+  }));
+}
+
+/**
+ * Alle Bewertungs-Klassen eines Anbieters, aufsteigend nach beworbener Rate.
+ * Für den "Meiner ist nicht dabei"-Fall: die ganze Auswahl zum Durchblättern.
+ */
+export function tarifKlassen(daten: TarifDaten, anbieter: string): TarifVorschlag[] {
+  const passende = daten.tarife.filter((t) => t.anbieter === anbieter);
+  if (passende.length === 0) return [];
+
+  return klassenBilden(passende)
+    .sort(
+      (a, b) =>
+        a.download_max_mbps - b.download_max_mbps ||
+        waehleRepraesentant(a.tarife).tarifname.localeCompare(
+          waehleRepraesentant(b.tarife).tarifname
+        )
+    )
+    .map((klasse) => ({
+      tarif: waehleRepraesentant(klasse.tarife),
+      varianten: klasse.tarife.length,
+    }));
 }

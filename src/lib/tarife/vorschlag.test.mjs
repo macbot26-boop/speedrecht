@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { tarifVorschlaege } from "./vorschlag.ts";
+import { tarifVorschlaege, tarifKlassen } from "./vorschlag.ts";
 
 const daten = JSON.parse(
   await readFile(new URL("./tarife.generated.json", import.meta.url), "utf8")
@@ -33,11 +33,16 @@ test("900 Mbit/s → Glasfaser 1.000 zuerst", () => {
   assert.match(v[0].tarif.tarifname, /Glasfaser/);
 });
 
-test("45 Mbit/s → 50er zuerst, keine Klasse doppelt", () => {
+test("45 Mbit/s → 50er zuerst, keine echte Klasse doppelt", () => {
   const v = tarifVorschlaege(daten, "Telekom", 45);
   assert.equal(v[0].tarif.download_max_mbps, 50);
-  const klassen = v.map((x) => x.tarif.download_max_mbps);
-  assert.equal(new Set(klassen).size, klassen.length);
+  // Eindeutig nach (bis-zu | normal | min): L und M dürfen dieselbe bis-zu-Rate
+  // (100) teilen — sie sind verschiedene Klassen, kein echtes Duplikat.
+  const schluessel = v.map(
+    (x) =>
+      `${x.tarif.download_max_mbps}|${x.tarif.download_normal_mbps}|${x.tarif.download_min_mbps}`
+  );
+  assert.equal(new Set(schluessel).size, schluessel.length);
 });
 
 test("Unbekannter Anbieter oder Unsinnswerte → leer", () => {
@@ -66,4 +71,40 @@ test("Varianten werden gezählt, Repräsentant ist die Basis-Variante", () => {
   const v = tarifVorschlaege(daten, "Telekom", 85);
   assert.ok(v[0].varianten >= 2, "100er-Klasse hat mehrere Vertrags-Varianten");
   assert.ok(!/Flex|On-Net|All-Net/.test(v[0].tarif.tarifname));
+});
+
+// --- tarifKlassen: vollständige Auswahl, aufsteigend nach beworbener Rate ---
+
+test("tarifKlassen listet Telekom-Klassen aufsteigend nach Maximal-Download", () => {
+  const k = tarifKlassen(daten, "Telekom");
+  assert.ok(k.length >= 5, "Telekom hat mehrere Bewertungs-Klassen");
+  const speeds = k.map((x) => x.tarif.download_max_mbps);
+  const sortiert = [...speeds].sort((a, b) => a - b);
+  assert.deepEqual(speeds, sortiert, "muss aufsteigend (nicht fallend) sortiert sein");
+  // Jede Klasse ist eindeutig nach (bis-zu | normal | min): Tarife mit gleicher
+  // bis-zu-Rate, aber anderem normal/min bleiben getrennt (kein Verschmelzen).
+  const schluessel = k.map(
+    (x) =>
+      `${x.tarif.download_max_mbps}|${x.tarif.download_normal_mbps}|${x.tarif.download_min_mbps}`
+  );
+  assert.equal(new Set(schluessel).size, schluessel.length, "keine doppelte Klasse");
+});
+
+test("tarifKlassen trennt Telekom 100: L (83,8) und M (83,3) sind beide wählbar", () => {
+  const k = tarifKlassen(daten, "Telekom");
+  const hunderter = k.filter((x) => x.tarif.download_max_mbps === 100);
+  assert.ok(hunderter.length >= 2, "100er muss in L und M getrennt sein");
+  const normals = new Set(hunderter.map((x) => x.tarif.download_normal_mbps));
+  assert.ok(normals.has(83.8) && normals.has(83.3), "beide normal-Werte vertreten");
+});
+
+test("Vorschlag bei 85 Mbit/s bietet Telekom-100 als L UND M an (M-Kunde nicht ausgeschlossen)", () => {
+  const v = tarifVorschlaege(daten, "Telekom", 85);
+  const hunderter = v.filter((x) => x.tarif.download_max_mbps === 100);
+  const normals = new Set(hunderter.map((x) => x.tarif.download_normal_mbps));
+  assert.ok(normals.has(83.8) && normals.has(83.3), "L und M beide vorgeschlagen");
+});
+
+test("tarifKlassen für unbekannten Anbieter → leer", () => {
+  assert.deepEqual(tarifKlassen(daten, "GibtEsNicht"), []);
 });

@@ -14,6 +14,18 @@ import {
 } from "@/lib/ias/use-ias-measurement";
 import type { ConnectionType, IasCompletedKpis } from "@/lib/ias/types";
 import { ANBIETER_SONSTIGE, FESTNETZ_ANBIETER } from "@/lib/netz/anbieter";
+import tarifDaten from "@/lib/tarife/tarife.generated.json";
+import {
+  tarifKlassen,
+  tarifVorschlaege,
+  type Tarif,
+  type TarifDaten,
+} from "@/lib/tarife/vorschlag";
+import { tarifUrteil, type UrteilTon } from "@/lib/tarife/urteil";
+
+// Statische Tarif-Tabelle (aus den Produktinformationsblättern erzeugt).
+// Der JSON-Import ist strukturell die TarifDaten-Form.
+const TARIFE = tarifDaten as TarifDaten;
 
 // Die Verbindungsart wird NICHT vorab abgefragt (Founder-Feedback: kein
 // Quiz vor der Messung). Stattdessen: zwei optionale Chips während der
@@ -316,6 +328,16 @@ export function MessungFlow() {
           />
         </div>
 
+        {/* Vertrag vs. Realität: benannter Tarif + Klartext-Urteil */}
+        <TarifClaim
+          anbieter={erkanntFestnetz}
+          gemessenMbps={
+            typeof result.download_rate_avg_mbps === "number"
+              ? result.download_rate_avg_mbps
+              : null
+          }
+        />
+
         {/* Ehrlichkeits-Labels — Produktgesetz, nicht verhandelbar */}
         <div className="flex w-full flex-col gap-2 text-left">
           <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm leading-6 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
@@ -571,6 +593,207 @@ function AnbieterBestaetigung({
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+function preisFormat(eur: number): string {
+  return eur.toFixed(2).replace(".", ",");
+}
+
+// Balken: gemessene Rate als Füllung, Marken für Minimum + normalerweise,
+// rechtes Ende = beworbene "bis-zu"-Rate. Farbe folgt dem Urteil.
+function TarifDeltaBalken({
+  tarif,
+  gemessenMbps,
+  ton,
+}: {
+  tarif: Tarif;
+  gemessenMbps: number;
+  ton: UrteilTon;
+}) {
+  const max = tarif.download_max_mbps;
+  // Ohne sinnvolle Obergrenze kein Balken (schützt vor Division durch 0).
+  if (!(max > 0)) return null;
+  const anteil = (wert: number) => Math.max(0, Math.min(100, (wert / max) * 100));
+  const breite = anteil(gemessenMbps);
+  const fuellFarbe =
+    ton === "gut"
+      ? "bg-emerald-500"
+      : ton === "unter_min"
+        ? "bg-red-500"
+        : "bg-amber-500";
+  const marken = [
+    tarif.download_min_mbps != null
+      ? {
+          pos: anteil(tarif.download_min_mbps),
+          label: `Minimum ${formatMbps(tarif.download_min_mbps)}`,
+        }
+      : null,
+    tarif.download_normal_mbps != null
+      ? {
+          pos: anteil(tarif.download_normal_mbps),
+          label: `Normalerweise ${formatMbps(tarif.download_normal_mbps)}`,
+        }
+      : null,
+  ].filter((m): m is { pos: number; label: string } => m !== null);
+
+  return (
+    <div className="flex w-full flex-col gap-2">
+      <div className="flex justify-between text-xs font-medium text-zinc-500">
+        <span>Du bekommst</span>
+        <span>Bestellt: bis zu {formatMbps(max)} Mbit/s</span>
+      </div>
+      <div className="relative h-10 rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
+        <div
+          className={`absolute inset-y-0 left-0 flex min-w-[46px] items-center justify-end rounded-lg pr-2.5 text-sm font-bold tabular-nums text-white ${fuellFarbe}`}
+          style={{ width: `${breite}%` }}
+        >
+          {formatMbps(gemessenMbps)}
+        </div>
+        {marken.map((m) => (
+          <div
+            key={m.label}
+            className="absolute -bottom-0.5 -top-0.5 w-0.5 rounded bg-zinc-500/60"
+            style={{ left: `${m.pos}%` }}
+            aria-hidden
+          />
+        ))}
+      </div>
+      {marken.length > 0 && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-medium text-zinc-400">
+          {marken.map((m) => (
+            <span key={m.label} className="inline-flex items-center gap-1.5">
+              <span className="inline-block h-2.5 w-0.5 rounded bg-zinc-400/70" aria-hidden />
+              {m.label}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Vertrag vs. Realität: erkannter Anbieter → Ein-Tap-Tarifwahl →
+// benannter Tarif mit Klartext-Urteil. Rein anzeigend (keine Speicherung).
+function TarifClaim({
+  anbieter,
+  gemessenMbps,
+}: {
+  anbieter: string | null;
+  gemessenMbps: number | null;
+}) {
+  const [gewaehlt, setGewaehlt] = useState<Tarif | null>(null);
+  const [alleZeigen, setAlleZeigen] = useState(false);
+
+  if (!anbieter || gemessenMbps == null || gemessenMbps <= 0) return null;
+
+  const vorschlaege = tarifVorschlaege(TARIFE, anbieter, gemessenMbps);
+
+  // Anbieter erkannt, aber (noch) keine Tarife hinterlegt (Anbieter, deren
+  // Tabelle noch nicht eingepflegt ist) — ehrlich sagen statt leerer Auswahl.
+  if (vorschlaege.length === 0) {
+    return (
+      <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left text-sm leading-6 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+        Für{" "}
+        <span className="font-semibold text-zinc-800 dark:text-zinc-200">{anbieter}</span> haben wir
+        die Tarife noch nicht hinterlegt — der direkte Vergleich mit deinem Vertrag kommt bald.
+      </div>
+    );
+  }
+
+  // --- Tarif noch nicht gewählt: Ein-Tap-Auswahl ---
+  if (!gewaehlt) {
+    const optionen = alleZeigen ? tarifKlassen(TARIFE, anbieter) : vorschlaege;
+    return (
+      <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left dark:border-zinc-800 dark:bg-zinc-950">
+        <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+          <span className="font-semibold">Dein Netz: {anbieter}.</span> Welcher Tarif ist deiner? Ein
+          Tap zeigt dir, ob du bekommst, wofür du zahlst.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {optionen.map((v) => (
+            <button
+              key={v.tarif.slug}
+              onClick={() => setGewaehlt(v.tarif)}
+              className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+            >
+              {v.tarif.tarifname}
+              <span className="ml-1 text-zinc-400">
+                · bis zu {formatMbps(v.tarif.download_max_mbps)}
+              </span>
+            </button>
+          ))}
+          {!alleZeigen && (
+            <button
+              onClick={() => setAlleZeigen(true)}
+              className="rounded-full px-4 py-2 text-sm font-medium text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+            >
+              Meiner ist nicht dabei …
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // --- Tarif gewählt: benannter Vertrag + Delta-Balken + Klartext-Urteil ---
+  const ton = tarifUrteil(gewaehlt, gemessenMbps);
+  const urteilStil =
+    ton === "gut"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200"
+      : ton === "unter_min"
+        ? "border-red-200 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+        : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200";
+
+  const claim =
+    ton === "gut" ? (
+      <>
+        <span className="font-bold">Passt zu deinem Tarif.</span> {gewaehlt.tarifname} liefert, was es
+        verspricht.
+      </>
+    ) : ton === "unter_min" ? (
+      <>
+        <span className="font-bold">Das passt nicht zu deinem Tarif.</span> Bei {gewaehlt.tarifname}{" "}
+        sind mindestens {formatMbps(gewaehlt.download_min_mbps)} Mbit/s zugesichert — gemessen:{" "}
+        {formatMbps(gemessenMbps)}.
+      </>
+    ) : (
+      <>
+        <span className="font-bold">Das passt nicht zu dem, was du bestellt hast.</span> Bei{" "}
+        {gewaehlt.tarifname} sollten normalerweise {formatMbps(gewaehlt.download_normal_mbps)} Mbit/s
+        anliegen — bei dir kommen {formatMbps(gemessenMbps)} an.
+      </>
+    );
+
+  return (
+    <div className="flex w-full flex-col gap-4 rounded-2xl border border-zinc-200 bg-white px-5 py-5 text-left dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex flex-col gap-0.5">
+        <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+          Dein bestellter Tarif
+        </div>
+        <div className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
+          {gewaehlt.tarifname} <span className="font-normal text-zinc-400">· {anbieter}</span>
+        </div>
+        <div className="text-xs text-zinc-500">
+          bis zu {formatMbps(gewaehlt.download_max_mbps)} Mbit/s
+          {gewaehlt.monatspreis_eur != null &&
+            ` · ${preisFormat(gewaehlt.monatspreis_eur)} €/Monat`}
+          <button
+            onClick={() => {
+              setGewaehlt(null);
+              setAlleZeigen(false);
+            }}
+            className="ml-2 text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+          >
+            ändern
+          </button>
+        </div>
+      </div>
+
+      <TarifDeltaBalken tarif={gewaehlt} gemessenMbps={gemessenMbps} ton={ton} />
+
+      <div className={`rounded-xl border px-4 py-3 text-sm leading-6 ${urteilStil}`}>{claim}</div>
     </div>
   );
 }
