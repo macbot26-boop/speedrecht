@@ -130,10 +130,17 @@ function klassenBilden(tarife: Tarif[]): Klasse[] {
 function unterscheidbarMachen(vorschlaege: TarifVorschlag[]): TarifVorschlag[] {
   const gruppen = new Map<string, TarifVorschlag[]>();
   for (const v of vorschlaege) {
-    // Schlüssel ist genau das, was der Nutzer sieht — auch der "+3"-Zähler.
-    // Zwei Knöpfe mit denselben zwei Namen und derselben Restzahl sind für ihn
-    // ununterscheidbar, egal wie verschieden die verdeckten Namen sind.
-    const etikett = `${v.produkte.join(", ")}|+${v.weitereNamen}|${aufAnzeige(v.tarif.download_max_mbps)}`;
+    // Schlüssel ist, wonach der Nutzer ENTSCHEIDEN kann: die gezeigten
+    // Produktnamen und die beworbene Rate.
+    //
+    // Der "+3"-Zähler gehört bewusst NICHT dazu, obwohl er auf dem Knopf
+    // steht. Er ist sichtbar, aber kein Kriterium: Wer "1&1 DSL 16" und
+    // "1&1 DSL 16 +1 weitere" nebeneinander sieht, kann daran nicht ablesen,
+    // welcher der eigene ist — und die beiden unterscheiden sich in einem
+    // Fall genau im garantierten Minimum (0,3 gegen 0,8 Mbit/s), also in dem
+    // Wert, an dem das Urteil hängt. Zählte er mit, blieben solche Knöpfe
+    // ohne den Wert, der sie auseinanderhält.
+    const etikett = `${v.produkte.join(", ")}|${aufAnzeige(v.tarif.download_max_mbps)}`;
     gruppen.set(etikett, [...(gruppen.get(etikett) ?? []), v]);
   }
 
@@ -251,15 +258,20 @@ export function tarifVorschlaege(
 }
 
 /**
- * Alle Bewertungs-Klassen eines Anbieters, aufsteigend nach beworbener Rate.
- * Für den "Meiner ist nicht dabei"-Fall: die ganze Auswahl zum Durchblättern.
+ * Formt eine beliebige Menge Tarife zu Bewertungs-Klassen, aufsteigend nach
+ * beworbener Rate.
+ *
+ * EINE Quelle für alle Wege, auf denen ein Vertrag auf den Schirm kommt:
+ * Vorschlagsliste, "Meiner ist nicht dabei"-Vollliste und Rechnungs-Abgleich.
+ * Liefe die Klassenbildung auseinander, trüge derselbe Vertrag je nach Weg
+ * eine andere Beschriftung — und der Nutzer könnte nicht erkennen, dass es
+ * derselbe ist.
  */
-export function tarifKlassen(daten: TarifDaten, anbieter: string): TarifVorschlag[] {
-  const passende = daten.tarife.filter((t) => t.anbieter === anbieter);
-  if (passende.length === 0) return [];
+export function klassenAusTarifen(tarife: Tarif[]): TarifVorschlag[] {
+  if (tarife.length === 0) return [];
 
   return unterscheidbarMachen(
-    klassenBilden(passende)
+    klassenBilden(tarife)
       .map((klasse) => alsVorschlag(klasse.tarife))
       .sort(
         (a, b) =>
@@ -267,4 +279,12 @@ export function tarifKlassen(daten: TarifDaten, anbieter: string): TarifVorschla
           a.tarif.tarifname.localeCompare(b.tarif.tarifname)
       )
   );
+}
+
+/**
+ * Alle Bewertungs-Klassen eines Anbieters, aufsteigend nach beworbener Rate.
+ * Für den "Meiner ist nicht dabei"-Fall: die ganze Auswahl zum Durchblättern.
+ */
+export function tarifKlassen(daten: TarifDaten, anbieter: string): TarifVorschlag[] {
+  return klassenAusTarifen(daten.tarife.filter((t) => t.anbieter === anbieter));
 }
