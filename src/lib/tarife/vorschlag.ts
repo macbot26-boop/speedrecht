@@ -36,18 +36,52 @@ export interface TarifDaten {
 }
 
 export interface TarifVorschlag {
-  /** Repräsentant der Klasse (kürzester Name = Basis-Variante). */
+  /**
+   * Repräsentant der Klasse — trägt die Zahlen, auf denen das Urteil beruht.
+   * Identisch mit `namensWahl[0]` (kürzester Name = Basis-Variante).
+   */
   tarif: Tarif;
-  /** Wie viele Vertrags-Varianten es in dieser Klasse gibt. */
-  varianten: number;
+  /**
+   * Ein Vertrag je Vertragsnamen dieser Klasse, kürzester Name zuerst.
+   *
+   * Ein einziger Eintrag heißt: die Klasse ist eindeutig benannt, ein Tap
+   * genügt. Mehrere heißt: der Nutzer muss seinen Namen selbst wählen — sonst
+   * stünde im Ergebnis (und später im Kulanz-Brief) ein Vertragsname, den er
+   * nie bestellt hat. Das Urteil ist für alle gleich, der Name nicht.
+   */
+  namensWahl: Tarif[];
+  /**
+   * Produktnamen für die Knopf-Beschriftung — so viele, wie draufpassen
+   * (`MAX_KNOPF_NAMEN`, `KNOPF_NAMEN_BUDGET`), mindestens einer.
+   * Zusatz-Varianten ("… L Flex") stehen unter ihrem Grundnamen ("… L") —
+   * der Knopf soll die wirklich verschiedenen Produkte zeigen, nicht dieselbe
+   * Familie dreimal.
+   */
+  produkte: string[];
+  /** Wie viele Vertragsnamen der Knopf NICHT zeigt (0 = er zeigt alle). */
+  weitereNamen: number;
   /**
    * Zusatz zur Beschriftung, wo zwei Auswahl-Knöpfe sonst gleich aussähen —
-   * gleicher Name UND gleiche bis-zu-Rate, aber verschiedene Urteile.
+   * gleiche Namen UND gleiche bis-zu-Rate, aber verschiedene Urteile.
    * Nur gesetzt, wo er wirklich gebraucht wird, und nur so viel, wie zum
    * Auseinanderhalten nötig ist.
    */
   unterscheidung?: { normalMbps?: number; minMbps?: number };
 }
+
+/** Mehr als zwei Namen sprengen den Knopf auch dann, wenn beide kurz sind. */
+export const MAX_KNOPF_NAMEN = 2;
+
+/**
+ * So viel Platz haben die Produktnamen zusammen auf einem Knopf.
+ *
+ * Der erste Name steht immer da, auch wenn er allein schon länger ist — ein
+ * Vertragsname wird nie abgeschnitten, sonst stünde wieder etwas auf dem
+ * Schirm, das so auf keiner Rechnung steht. Ein zweiter kommt nur dazu, wenn
+ * beide zusammen darunter bleiben; sonst würde aus Vodafones langen Namen ein
+ * vierzeiliger Klotz auf dem Handy.
+ */
+export const KNOPF_NAMEN_BUDGET = 48;
 
 // Eine Bewertungs-Klasse: Tarife, die für den Vergleich gleichwertig sind —
 // gleiche bis-zu-, normalerweise- UND Minimum-Rate. Reine Namensvarianten
@@ -96,7 +130,10 @@ function klassenBilden(tarife: Tarif[]): Klasse[] {
 function unterscheidbarMachen(vorschlaege: TarifVorschlag[]): TarifVorschlag[] {
   const gruppen = new Map<string, TarifVorschlag[]>();
   for (const v of vorschlaege) {
-    const etikett = `${v.tarif.tarifname}|${aufAnzeige(v.tarif.download_max_mbps)}`;
+    // Schlüssel ist genau das, was der Nutzer sieht — auch der "+3"-Zähler.
+    // Zwei Knöpfe mit denselben zwei Namen und derselben Restzahl sind für ihn
+    // ununterscheidbar, egal wie verschieden die verdeckten Namen sind.
+    const etikett = `${v.produkte.join(", ")}|+${v.weitereNamen}|${aufAnzeige(v.tarif.download_max_mbps)}`;
     gruppen.set(etikett, [...(gruppen.get(etikett) ?? []), v]);
   }
 
@@ -131,12 +168,53 @@ function unterscheidbarMachen(vorschlaege: TarifVorschlag[]): TarifVorschlag[] {
   return vorschlaege;
 }
 
-// Repräsentant einer Klasse: der kürzeste Name (= Basis-Variante), bei
-// Gleichstand alphabetisch nach slug — deterministisch.
-function waehleRepraesentant(tarife: Tarif[]): Tarif {
-  return [...tarife].sort(
-    (a, b) => a.tarifname.length - b.tarifname.length || a.slug.localeCompare(b.slug)
-  )[0];
+// Reihenfolge der Namen: kürzester zuerst (= Basis-Variante vor "… Flex"),
+// bei Gleichstand alphabetisch nach slug — deterministisch.
+function nachNamensLaenge(a: Tarif, b: Tarif): number {
+  return (
+    a.tarifname.length - b.tarifname.length ||
+    a.tarifname.localeCompare(b.tarifname) ||
+    a.slug.localeCompare(b.slug)
+  );
+}
+
+// Ein Vertrag je Vertragsnamen — gleichnamige Blätter (verschiedene Jahrgänge,
+// verschiedene Regional-Zuschläge) sind für die Auswahl derselbe Eintrag.
+function jeNamenEinTarif(tarife: Tarif[]): Tarif[] {
+  const proName = new Map<string, Tarif>();
+  for (const t of [...tarife].sort(nachNamensLaenge)) {
+    if (!proName.has(t.tarifname)) proName.set(t.tarifname, t);
+  }
+  return [...proName.values()];
+}
+
+// Produktnamen einer Klasse: Namen, die nicht bloß Zusatz-Variante eines
+// kürzeren Namens derselben Klasse sind. "MagentaZuhause L Flex" fällt unter
+// "MagentaZuhause L"; "O2 Home M 100" ist ein eigenes Produkt und bleibt.
+function produktNamen(namen: string[]): string[] {
+  return namen.filter((n) => !namen.some((m) => m !== n && n.startsWith(m + " ")));
+}
+
+// So viele Produktnamen, wie auf den Knopf passen — mindestens einer.
+function aufKnopfPassend(produkte: string[]): string[] {
+  const gezeigt = [produkte[0]];
+  for (const name of produkte.slice(1, MAX_KNOPF_NAMEN)) {
+    if ([...gezeigt, name].join(", ").length > KNOPF_NAMEN_BUDGET) break;
+    gezeigt.push(name);
+  }
+  return gezeigt;
+}
+
+// Eine Klasse in die Form bringen, die Auswahl und Ergebnis brauchen.
+function alsVorschlag(tarife: Tarif[]): TarifVorschlag {
+  const namensWahl = jeNamenEinTarif(tarife);
+  const produkte = aufKnopfPassend(produktNamen(namensWahl.map((t) => t.tarifname)));
+  return {
+    tarif: namensWahl[0],
+    namensWahl,
+    produkte,
+    weitereNamen: namensWahl.length - produkte.length,
+  };
 }
 
 /**
@@ -168,10 +246,7 @@ export function tarifVorschlaege(
   );
 
   return unterscheidbarMachen(
-    bewertet.slice(0, maxAnzahl).map(({ klasse }) => ({
-      tarif: waehleRepraesentant(klasse.tarife),
-      varianten: klasse.tarife.length,
-    }))
+    bewertet.slice(0, maxAnzahl).map(({ klasse }) => alsVorschlag(klasse.tarife))
   );
 }
 
@@ -185,16 +260,11 @@ export function tarifKlassen(daten: TarifDaten, anbieter: string): TarifVorschla
 
   return unterscheidbarMachen(
     klassenBilden(passende)
+      .map((klasse) => alsVorschlag(klasse.tarife))
       .sort(
         (a, b) =>
-          a.download_max_mbps - b.download_max_mbps ||
-          waehleRepraesentant(a.tarife).tarifname.localeCompare(
-            waehleRepraesentant(b.tarife).tarifname
-          )
+          a.tarif.download_max_mbps - b.tarif.download_max_mbps ||
+          a.tarif.tarifname.localeCompare(b.tarif.tarifname)
       )
-      .map((klasse) => ({
-        tarif: waehleRepraesentant(klasse.tarife),
-        varianten: klasse.tarife.length,
-      }))
   );
 }
