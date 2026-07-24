@@ -155,6 +155,73 @@ test("Tabelle: weltbekannte Adressen werden richtig eingeordnet", () => {
   assert.equal(erkennen("2606:4700:4700::1111").anbieter, "Cloudflare"); // dito, v6
 });
 
+test("Tabelle: gekaufte Bereiche aus fremden Weltregionen bleiben erhalten", () => {
+  // Diese Bereiche sehen auf den ersten Blick falsch aus — 9.0.0.0/8 ist
+  // IBM-Altbestand, 14.0.0.0/8 asiatisch —, gehören aber wirklich 1&1: die
+  // Blöcke wurden gekauft und ins RIPE-Register übertragen (Netznamen
+  // "Dusseldorf_1" bzw. "OneAndOne-Network-AS8881", Land DE) und versorgen
+  // deutsche Kunden.
+  //
+  // Der Test hält fest, dass die Aufnahmeregel am Register hängt und NICHT
+  // daran, ob ein Bereich "deutsch aussieht". Ein Filter nach Ländercode
+  // oder erstem Oktett würde hier echte Kundenbereiche wegwerfen und die
+  // Tarifzuordnung für diese Kunden unmöglich machen.
+  const { erkennen } = erkennerAufbauen(echteDaten);
+  for (const ip of ["9.151.48.1", "9.232.32.1", "9.249.32.1", "14.102.90.1"]) {
+    assert.equal(erkennen(ip).anbieter, "1&1", `${ip} sollte 1&1 sein`);
+  }
+});
+
+test("Tabelle: fremd registrierte Transit-Bereiche zählen nicht als Anschluss", () => {
+  // Deutsche Anbieter kündigen auch Adressen von Geschäftskunden an, die sie
+  // nur transportieren — eingetragen in fremden Weltregistern (US-Rechen-
+  // zentren, Ghana). Wer von dort misst, hat keinen deutschen Anschluss
+  // dieses Anbieters und darf dessen Tarifliste nicht vorgeschlagen bekommen.
+  //
+  // Schlägt dieser Test fehl, wurde entweder die Registerprüfung im Sammel-
+  // Skript entfernt — oder der Bereich ist inzwischen wirklich ins
+  // RIPE-Register übertragen worden. Dann im Register nachschlagen und die
+  // Adresse hier ersetzen, statt die Prüfung aufzuweichen.
+  const { erkennen } = erkennerAufbauen(echteDaten);
+  for (const ip of [
+    "23.27.65.1", // Ace Data Centers II, L.L.C. (US) — angekündigt von AS8881
+    "208.9.32.1", // ARIN-Block — angekündigt von AS8881
+    "196.44.120.1", // Ecoband, Ghana — angekündigt von AS3320
+    "199.161.32.1", // ARIN-Block — angekündigt von AS3320
+    "161.195.141.1", // ARIN-Block — angekündigt von AS3209
+    "128.224.248.1", // ARIN-Block — angekündigt von AS8767
+  ]) {
+    assert.notEqual(
+      erkennen(ip).kategorie,
+      "festnetz",
+      `${ip} ist fremd registriert und darf kein Festnetz-Anschluss sein`
+    );
+  }
+});
+
+test("Tabelle: Hosting/VPN wird weiterhin weltweit erkannt", () => {
+  // Die Registerprüfung gilt bewusst NUR für Zugangsnetze. Rechenzentren und
+  // VPN-Austritte müssen überall auf der Welt erkannt werden — sonst fällt
+  // der ehrliche "Du misst über einen VPN"-Hinweis aus.
+  const { erkennen } = erkennerAufbauen(echteDaten);
+  for (const [ip, anbieter] of [
+    ["13.32.0.1", "Amazon"], // US-Adressraum
+    ["104.16.0.1", "Cloudflare"], // US-Adressraum
+  ]) {
+    assert.equal(erkennen(ip).anbieter, anbieter);
+    assert.equal(erkennen(ip).kategorie, "hosting_vpn");
+  }
+});
+
+test("Tabelle: Aufnahmeregel ist in den Daten dokumentiert", () => {
+  // Die Regel steht in der generierten Datei, damit nachvollziehbar bleibt,
+  // wie die Bereiche zustande kamen.
+  assert.ok(
+    typeof echteDaten.regel === "string" && echteDaten.regel.length > 0,
+    "Feld 'regel' fehlt — mit scripts/netz-daten-sammeln.mjs neu erzeugen"
+  );
+});
+
 test("Tabelle: Selbstkonsistenz — Startadresse eines Telekom-Abschnitts → Telekom", () => {
   const { erkennen } = erkennerAufbauen(echteDaten);
   const telekomIdx = echteDaten.traeger.findIndex((t) => t.anbieter === "Telekom");

@@ -20,6 +20,8 @@ export interface NetzTraeger {
 export interface NetzDaten {
   stand: string;
   quelle: string;
+  /** Aufnahmeregel der Bereiche — siehe scripts/netz-daten-sammeln.mjs */
+  regel: string;
   traeger: NetzTraeger[];
   /** [start, ende, träger-index] — überschneidungsfrei, aufsteigend sortiert */
   v4: [number, number, number][];
