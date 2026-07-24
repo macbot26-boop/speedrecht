@@ -8,6 +8,11 @@
 // Registernamen (Holder) validiert; passt er nicht, fliegt er laut raus —
 // so können sich Tippfehler in der Kuratierung nicht still einschleichen.
 //
+// Zusätzlich wird jeder Bereich eines Zugangsnetzes auf Plausibilität
+// geprüft (siehe „Registerprüfung“ weiter unten) — die Holder-Prüfung
+// beantwortet nur, WEM der ASN gehört, nicht, ob die angekündigten
+// Adressbereiche zu einem deutschen Anschluss passen.
+//
 // Datenschutz: Dieses Skript verarbeitet KEINE Nutzerdaten — nur öffentliche
 // Routing-Registerdaten über unsere eigene Entwickler-Verbindung.
 
@@ -24,6 +29,10 @@ const KURATIERT = [
   // — Festnetz-Anbieter (Top ~10 Deutschland) —
   { asn: 3320, anbieter: "Telekom", kategorie: "festnetz", erwartet: /deutsche telekom|dtag/i },
   { asn: 3209, anbieter: "Vodafone", kategorie: "festnetz", erwartet: /vodafone/i },
+  // AS31334 (Kabel Deutschland) kündigt seit März 2026 nichts mehr an —
+  // die Kabelkunden laufen inzwischen über AS3209. Der Eintrag bleibt
+  // kuratiert, falls der ASN wieder aktiv wird; das Skript warnt unten laut,
+  // solange er leer bleibt.
   { asn: 31334, anbieter: "Vodafone", kategorie: "festnetz", erwartet: /vodafone|kabel deutschland/i },
   { asn: 6805, anbieter: "o2", kategorie: "festnetz", erwartet: /telefonica|telefónica/i },
   { asn: 8881, anbieter: "1&1", kategorie: "festnetz", erwartet: /versatel|1&1/i },
@@ -62,11 +71,19 @@ const KURATIERT = [
 ];
 
 const RIPESTAT = "https://stat.ripe.net/data";
+// Amtliches Delegationsregister der RIPE NCC (Registrierungsstelle für
+// Europa): eine Zeile je vergebenem Adressblock, täglich aktualisiert.
+const RIPE_REGISTER =
+  "https://ftp.ripe.net/pub/stats/ripencc/delegated-ripencc-extended-latest";
 const AUSGABE = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
   "src/lib/netz/netzdaten.generated.json"
 );
+
+const REGEL =
+  "Zugangsnetze (festnetz/mobilfunk) nur mit Bereichen aus dem " +
+  "RIPE-Delegationsregister; hosting_vpn bewusst weltweit";
 
 async function ripestat(endpoint, asn, versuch = 1) {
   const url = `${RIPESTAT}/${endpoint}/data.json?resource=AS${asn}`;
@@ -84,9 +101,142 @@ async function ripestat(endpoint, asn, versuch = 1) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Registerprüfung: Gehört der Bereich überhaupt in unsere Weltregion?
+//
+// Ein deutscher Anschluss-Anbieter kündigt nicht nur die Adressen seiner
+// eigenen Kunden an, sondern auch Bereiche von Geschäftskunden, deren
+// Verkehr er lediglich transportiert. Darunter sind Blöcke aus fremden
+// Weltregistern — etwa 23.27.65.0/24 (eingetragen auf ein US-Rechenzentrum,
+// von AS8881 angekündigt) oder 196.44.120.0/22 (Ghana, von AS3320). Für die
+// Anbieter-Erkennung sind das Falschtreffer mit direkter Produktwirkung: Wer
+// von dort misst, hat keinen deutschen Anschluss dieses Anbieters, bekäme
+// aber dessen Tarifliste und damit ein falsches Urteil.
+//
+// Die Regel: Für Zugangsnetze zählt ein Bereich nur, wenn er vollständig im
+// Delegationsregister der RIPE NCC steht — der Registrierungsstelle für
+// Europa, bei der deutsche Anbieter ihre Kundenbereiche führen.
+//
+// Bewusst NICHT nach Ländercode "DE" oder nach "sieht deutsch aus"
+// gefiltert: Seit der IPv4-Knappheit kaufen deutsche Anbieter Blöcke aus
+// anderen Weltregionen und lassen sie ins RIPE-Register übertragen. 1&1
+// nutzt so 9.151.48.0/20 (Altbestand IBM, Netzname "Dusseldorf_1") und
+// 14.102.90.0/24 (ehemals Hongkong) für deutsche Kunden. Der Ländercode
+// dieser Einträge zeigt weiterhin die Herkunft (US bzw. HK) — ein DE-Filter
+// würde also echte Kundenbereiche wegwerfen. Die Registerzugehörigkeit
+// trennt sauber: Alle geprüften echten Bereiche bleiben erhalten.
+//
+// Für hosting_vpn gilt die Regel absichtlich NICHT: Rechenzentren und
+// VPN-Austritte sollen weltweit erkannt werden — genau das ist ihr Zweck.
+// ---------------------------------------------------------------------------
+
+async function ripeRegisterLaden(versuch = 1) {
+  try {
+    const res = await fetch(RIPE_REGISTER, { signal: AbortSignal.timeout(180_000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.text();
+  } catch (err) {
+    if (versuch < 3) {
+      await new Promise((r) => setTimeout(r, 2_000 * versuch));
+      return ripeRegisterLaden(versuch + 1);
+    }
+    throw new Error(`RIPE-Register: ${err.message}`);
+  }
+}
+
+/**
+ * Wertet das Delegationsregister aus. Zeilenformat:
+ *   registry|land|typ|startadresse|wert|datum|status|id
+ * Für `ipv4` ist `wert` die ANZAHL Adressen (nicht die Präfixlänge), für
+ * `ipv6` die Präfixlänge. Angrenzende und überlappende Blöcke werden zu
+ * möglichst wenigen Intervallen verschmolzen, damit die spätere Prüfung
+ * eine binäre Suche ist. (cidrZuBereich steht weiter unten — Funktions-
+ * deklarationen gelten in JavaScript für die ganze Datei.)
+ */
+function registerAuswerten(text) {
+  const roh = { v4: [], v6: [] };
+  for (const zeile of text.split("\n")) {
+    if (!zeile || zeile.startsWith("#")) continue;
+    const felder = zeile.split("|");
+    if (felder.length < 7) continue;
+    const [, , typ, adresse, wert, , status] = felder;
+    // "reserved"/"available" sind nicht vergeben — sie gehören niemandem.
+    if (status === "reserved" || status === "available") continue;
+    // Unbrauchbare Zeilen (etwa eine abgeschnittene letzte Zeile) werden
+    // übersprungen statt den Lauf abzubrechen; ein wirklich unvollständiges
+    // Register fängt die Mengenprüfung weiter unten ab.
+    if (!/^\d+$/.test(wert)) continue;
+    if (typ === "ipv4") {
+      const anzahl = BigInt(wert);
+      if (anzahl < 1n) continue;
+      const start = cidrZuBereich(`${adresse}/32`).start;
+      roh.v4.push({ start, ende: start + anzahl - 1n });
+    } else if (typ === "ipv6") {
+      if (Number(wert) > 128) continue;
+      const bereich = cidrZuBereich(`${adresse}/${wert}`);
+      roh.v6.push({ start: bereich.start, ende: bereich.ende });
+    }
+  }
+
+  const vereinigen = (liste) => {
+    liste.sort((a, b) =>
+      a.start !== b.start ? (a.start < b.start ? -1 : 1) : a.ende < b.ende ? -1 : 1
+    );
+    const aus = [];
+    for (const b of liste) {
+      const letztes = aus[aus.length - 1];
+      if (letztes && b.start <= letztes.ende + 1n) {
+        if (b.ende > letztes.ende) letztes.ende = b.ende;
+      } else {
+        aus.push({ start: b.start, ende: b.ende });
+      }
+    }
+    return aus;
+  };
+
+  return {
+    v4: vereinigen(roh.v4),
+    v6: vereinigen(roh.v6),
+    anzahl: { v4: roh.v4.length, v6: roh.v6.length },
+  };
+}
+
+/** Liegt [start, ende] vollständig in einem Block des Registers? */
+function imRegister(bloecke, start, ende) {
+  let links = 0;
+  let rechts = bloecke.length - 1;
+  while (links <= rechts) {
+    const mitte = (links + rechts) >> 1;
+    const block = bloecke[mitte];
+    if (start < block.start) rechts = mitte - 1;
+    else if (start > block.ende) links = mitte + 1;
+    else return ende <= block.ende;
+  }
+  return false;
+}
+
+console.log("Lade RIPE-Delegationsregister …");
+const register = registerAuswerten(await ripeRegisterLaden());
+// Schutz vor einer halb geladenen Datei: Ein leeres oder verstümmeltes
+// Register würde jeden deutschen Bereich verwerfen und still eine nutzlose
+// Tabelle schreiben. Die Schwellen liegen weit unter dem realen Umfang
+// (Juli 2026: rund 100.000 v4- und 26.000 v6-Einträge).
+if (register.anzahl.v4 < 50_000 || register.anzahl.v6 < 5_000) {
+  console.error(
+    `❌ RIPE-Register unplausibel klein (${register.anzahl.v4} v4, ` +
+      `${register.anzahl.v6} v6) — Abbruch ohne Schreiben.`
+  );
+  process.exit(1);
+}
+console.log(
+  `   ${register.anzahl.v4} v4- und ${register.anzahl.v6} v6-Einträge → ` +
+    `${register.v4.length} + ${register.v6.length} zusammenhängende Blöcke\n`
+);
+
 const traeger = [];
 const netze = [];
 const verworfen = [];
+const statistik = [];
 
 // Fremde Texte (Holder-Namen) vor der Terminal-Ausgabe von Steuerzeichen
 // befreien — eine bösartige Antwort soll keine Escape-Sequenzen einschleusen.
@@ -105,7 +255,36 @@ for (const eintrag of KURATIERT) {
   }
 
   const angekuendigt = await ripestat("announced-prefixes", eintrag.asn);
-  const prefixes = (angekuendigt?.prefixes ?? []).map((p) => p.prefix);
+  const roh = angekuendigt?.prefixes ?? [];
+  const fensterEnde = angekuendigt?.query_endtime ?? null;
+  const zugangsnetz = eintrag.kategorie !== "hosting_vpn";
+
+  const prefixes = [];
+  const fremd = [];
+  let ausgelaufen = 0;
+  for (const p of roh) {
+    // RIPEstat nennt je Präfix die Zeitfenster, in denen es im
+    // Beobachtungszeitraum sichtbar war. Endet das letzte vor dem Ende des
+    // Zeitraums, wird der Bereich nicht mehr angekündigt — der Anbieter hat
+    // ihn abgegeben. Ohne positive Zeitangabe wird nichts verworfen.
+    const zuletzt = (p.timelines ?? [])
+      .map((t) => t.endtime)
+      .filter(Boolean)
+      .sort()
+      .pop();
+    if (fensterEnde && zuletzt && zuletzt < fensterEnde) {
+      ausgelaufen++;
+      continue;
+    }
+    if (zugangsnetz) {
+      const bereich = cidrZuBereich(p.prefix);
+      if (!imRegister(register[bereich.familie], bereich.start, bereich.ende)) {
+        fremd.push(p.prefix);
+        continue;
+      }
+    }
+    prefixes.push(p.prefix);
+  }
 
   const idx = traeger.length;
   traeger.push({
@@ -115,9 +294,21 @@ for (const eintrag of KURATIERT) {
     kategorie: eintrag.kategorie,
   });
   for (const prefix of prefixes) netze.push([prefix, idx]);
+  statistik.push({
+    asn: eintrag.asn,
+    anbieter: eintrag.anbieter,
+    kategorie: eintrag.kategorie,
+    roh: roh.length,
+    behalten: prefixes.length,
+    fremd,
+    ausgelaufen,
+  });
 
   console.log(
-    `✓ AS${eintrag.asn} ${eintrag.anbieter} (${eintrag.kategorie}) — "${holder}", ${prefixes.length} Netze`
+    `✓ AS${eintrag.asn} ${eintrag.anbieter} (${eintrag.kategorie}) — "${holder}", ` +
+      `${prefixes.length} Netze` +
+      (fremd.length ? ` · ${fremd.length} außerhalb des RIPE-Registers verworfen` : "") +
+      (ausgelaufen ? ` · ${ausgelaufen} nicht mehr angekündigt` : "")
   );
   // Höflich zur öffentlichen API bleiben.
   await new Promise((r) => setTimeout(r, 300));
@@ -135,6 +326,47 @@ if (verworfen.length > 0) {
 if (traeger.filter((t) => t.kategorie === "festnetz").length < 8) {
   console.error("❌ Zu wenige Festnetz-ASNs — Abbruch ohne Schreiben.");
   process.exit(1);
+}
+
+// Verliert ein Zugangsnetz plötzlich den Großteil seiner Bereiche, ist eher
+// die Registerdatei kaputt als die Wirklichkeit — dann lieber gar nichts
+// schreiben. Stand Juli 2026 ist 1&1 mit 26 % der stärkste Fall.
+const uebermaessig = statistik.filter(
+  (s) => s.kategorie !== "hosting_vpn" && s.roh > 0 && s.fremd.length / s.roh > 0.6
+);
+if (uebermaessig.length > 0) {
+  for (const s of uebermaessig) {
+    console.error(
+      `❌ AS${s.asn} ${s.anbieter}: ${s.fremd.length} von ${s.roh} Bereichen ` +
+        `außerhalb des RIPE-Registers — unplausibel.`
+    );
+  }
+  console.error("   Registerdatei prüfen. Abbruch ohne Schreiben.");
+  process.exit(1);
+}
+
+// Ein kuratiertes Zugangsnetz ohne Bereiche ist kein Schreibfehler, aber
+// eine stille Lücke in der Erkennung — deshalb sichtbar melden.
+for (const s of statistik) {
+  if (s.kategorie !== "hosting_vpn" && s.behalten === 0) {
+    console.warn(
+      `⚠️  AS${s.asn} ${s.anbieter} liefert 0 Bereiche — Kunden dieses ` +
+        `Netzes werden über diesen ASN nicht erkannt.`
+    );
+  }
+}
+
+const fremdGesamt = statistik.reduce((n, s) => n + s.fremd.length, 0);
+const altGesamt = statistik.reduce((n, s) => n + s.ausgelaufen, 0);
+if (fremdGesamt > 0) {
+  console.log(`\nAußerhalb des RIPE-Registers verworfen (${fremdGesamt}):`);
+  for (const s of statistik) {
+    if (!s.fremd.length) continue;
+    console.log(
+      `  AS${s.asn} ${s.anbieter}: ${s.fremd.slice(0, 6).join(" ")}` +
+        (s.fremd.length > 6 ? ` … (+${s.fremd.length - 6})` : "")
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -235,7 +467,10 @@ const segmenteV6 = verdichten(bereiche.v6).map(([s, e, i]) => [
 
 const daten = {
   stand: new Date().toISOString().slice(0, 10),
-  quelle: "RIPEstat (announced-prefixes, as-overview) — öffentliche BGP-Registerdaten",
+  quelle:
+    "RIPEstat (announced-prefixes, as-overview) — öffentliche BGP-Registerdaten; " +
+    "Plausibilität gegen das RIPE-Delegationsregister geprüft",
+  regel: REGEL,
   traeger,
   v4: segmenteV4,
   v6: segmenteV6,
@@ -245,5 +480,6 @@ await writeFile(AUSGABE, JSON.stringify(daten));
 console.log(
   `\nGeschrieben: ${AUSGABE}\n${traeger.length} ASNs · ${netze.length} Roh-Netzbereiche → ` +
     `${segmenteV4.length} v4- + ${segmenteV6.length} v6-Abschnitte · Stand ${daten.stand}` +
-    (verworfen.length ? ` · ${verworfen.length} verworfen` : "")
+    (fremdGesamt ? ` · ${fremdGesamt} außerhalb RIPE-Register verworfen` : "") +
+    (altGesamt ? ` · ${altGesamt} nicht mehr angekündigt` : "")
 );
