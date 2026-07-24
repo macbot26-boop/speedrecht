@@ -4,7 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { tarifVorschlaege, tarifKlassen } from "./vorschlag.ts";
+import { tarifVorschlaege, tarifKlassen, MAX_KNOPF_NAMEN } from "./vorschlag.ts";
+import { tarifUrteil } from "./urteil.ts";
 import { aufAnzeige, formatMbps } from "./anzeige.ts";
 
 const daten = JSON.parse(
@@ -68,10 +69,14 @@ test("Malus-Regel: Klasse ÜBER dem Messwert schlägt nahegelegene darunter", ()
   assert.equal(v[0].tarif.download_max_mbps, 60);
 });
 
-test("Varianten werden gezählt, Repräsentant ist die Basis-Variante", () => {
+test("Varianten sind wählbar, Repräsentant ist die Basis-Variante", () => {
   const v = tarifVorschlaege(daten, "Telekom", 85);
-  assert.ok(v[0].varianten >= 2, "100er-Klasse hat mehrere Vertrags-Varianten");
+  assert.ok(v[0].namensWahl.length >= 2, "100er-Klasse hat mehrere Vertragsnamen");
   assert.ok(!/Flex|On-Net|All-Net/.test(v[0].tarif.tarifname));
+  // Der Knopf zeigt nur den Grundnamen — "… L Flex" ist keine eigene Zeile
+  // wert, es ist dasselbe Produkt. Wählbar bleibt es trotzdem (namensWahl).
+  assert.deepEqual(v[0].produkte, ["MagentaZuhause L"]);
+  assert.ok(v[0].namensWahl.some((t) => t.tarifname === "MagentaZuhause L Flex"));
 });
 
 // --- tarifKlassen: vollständige Auswahl, aufsteigend nach beworbener Rate ---
@@ -155,7 +160,9 @@ test("Bezeichner sind eindeutig — sie sind der Listen-Schlüssel der Auswahl",
 function knopfText(v) {
   const zeig = formatMbps;
   return (
-    `${v.tarif.tarifname} · bis zu ${zeig(v.tarif.download_max_mbps)}` +
+    v.produkte.join(", ") +
+    (v.weitereNamen > 0 ? ` +${v.weitereNamen} weitere` : "") +
+    ` · bis zu ${zeig(v.tarif.download_max_mbps)}` +
     (v.unterscheidung?.normalMbps != null ? `, normal ${zeig(v.unterscheidung.normalMbps)}` : "") +
     (v.unterscheidung?.minMbps != null ? `, min ${zeig(v.unterscheidung.minMbps)}` : "")
   );
@@ -185,6 +192,74 @@ test("Unterscheidung steht nur da, wo sie gebraucht wird", () => {
   assert.ok(k.some((v) => v.unterscheidung === undefined));
 });
 
+// --- Kein Vertragsname geht verloren ---------------------------------------
+
+test("jeder Vertragsname der Tabelle ist über die Auswahl erreichbar", () => {
+  // Der Kern der zweistufigen Wahl: Früher gewann in einer Klasse der KÜRZESTE
+  // Name, alle anderen waren unerreichbar — im Ergebnis (und später im
+  // Kulanz-Brief) stand ein Vertrag, den der Nutzer nie bestellt hat.
+  for (const anbieter of ["Telekom", "Vodafone", "o2", "1&1", "PŸUR", "Deutsche Glasfaser"]) {
+    const inDenDaten = new Set(
+      daten.tarife.filter((t) => t.anbieter === anbieter).map((t) => t.tarifname)
+    );
+    const erreichbar = new Set(
+      tarifKlassen(daten, anbieter).flatMap((v) => v.namensWahl.map((t) => t.tarifname))
+    );
+    const fehlend = [...inDenDaten].filter((n) => !erreichbar.has(n));
+    assert.deepEqual(fehlend, [], `${anbieter}: nicht wählbare Vertragsnamen`);
+  }
+});
+
+test("der o2-Fall, an dem es auffiel: 'O2 Home M 100' ist wählbar", () => {
+  // 100/83/50 bündelt sieben Verträge aus vier Produkten. "O2 my Home L" ist
+  // ein Zeichen kürzer als "O2 Home M 100" und gewann deshalb den Namen.
+  const klasse = tarifKlassen(daten, "o2").find((v) =>
+    v.namensWahl.some((t) => t.tarifname === "O2 Home M 100")
+  );
+  assert.ok(klasse, "Klasse mit 'O2 Home M 100' nicht gefunden");
+  assert.equal(klasse.namensWahl.length, 7, "sieben Verträge aus vier Produkten");
+  // Auf den Knopf passen zwei Namen — der Rest wird nicht verschwiegen,
+  // sondern gezählt. Früher stand hier nur "O2 my Home L" und sonst nichts.
+  assert.equal(klasse.weitereNamen, 5);
+  assert.ok(klasse.produkte.length >= 1);
+});
+
+test("die Namenswahl ändert nie das Urteil — nur den Namen", () => {
+  // Sonst wäre sie eine Falle: Der Nutzer tippt seinen echten Vertrag an und
+  // bekommt ein anderes Ergebnis als der Knopf versprochen hat.
+  for (const anbieter of ["Telekom", "Vodafone", "o2", "1&1", "PŸUR", "Deutsche Glasfaser"]) {
+    for (const v of tarifKlassen(daten, anbieter)) {
+      for (const gemessen of [0.5, 5, 45, 90, 240, 900]) {
+        const urteile = new Set(v.namensWahl.map((t) => tarifUrteil(t, gemessen)));
+        assert.equal(urteile.size, 1, `${anbieter}/${v.tarif.slug} @ ${gemessen}`);
+      }
+    }
+  }
+});
+
+test("ein Tap genügt, wo die Klasse eindeutig heißt", () => {
+  // Die zweite Stufe darf nicht zur Pflicht für alle werden — sonst kostet die
+  // Ehrlichkeit jeden Nutzer einen Tap, auch wo es nichts zu wählen gibt.
+  const eindeutig = tarifKlassen(daten, "Telekom").filter((v) => v.namensWahl.length === 1);
+  assert.ok(eindeutig.length > 0, "keine einzige eindeutige Telekom-Klasse");
+  for (const v of eindeutig) assert.equal(v.weitereNamen, 0);
+});
+
+test("der Knopf verschweigt nie, wie viele Namen dahinterstecken", () => {
+  for (const anbieter of ["Telekom", "Vodafone", "o2", "1&1", "PŸUR", "Deutsche Glasfaser"]) {
+    for (const v of tarifKlassen(daten, anbieter)) {
+      assert.ok(v.produkte.length >= 1, `${v.tarif.slug}: Knopf ohne Namen`);
+      assert.ok(v.produkte.length <= MAX_KNOPF_NAMEN, `${v.tarif.slug}: Knopf zu voll`);
+      assert.equal(
+        v.produkte.length + v.weitereNamen,
+        v.namensWahl.length,
+        `${v.tarif.slug}: "+N weitere" zählt falsch`
+      );
+      assert.equal(v.tarif, v.namensWahl[0], `${v.tarif.slug}: Repräsentant ≠ erste Wahl`);
+    }
+  }
+});
+
 test("Werte, die sich erst hinter der Anzeige unterscheiden, gelten als ein Tarif", () => {
   // 0,77 und 0,768 stehen beide als "0.8" auf dem Schirm und ergeben
   // dasselbe Urteil — zwei Knöpfe daraus wären für niemanden trennbar.
@@ -210,7 +285,8 @@ test("Werte, die sich erst hinter der Anzeige unterscheiden, gelten als ein Tari
   };
   const k = tarifKlassen(mini, "Test");
   assert.equal(k.length, 1);
-  assert.equal(k[0].varianten, 2);
+  // Beide heißen gleich — also auch keine Namens-Rückfrage: ein Tap genügt.
+  assert.equal(k[0].namensWahl.length, 1);
 });
 
 // --- Anzeige-Rundung -------------------------------------------------------

@@ -684,6 +684,19 @@ function TarifClaim({
 }) {
   const [gewaehlt, setGewaehlt] = useState<Tarif | null>(null);
   const [alleZeigen, setAlleZeigen] = useState(false);
+  // Stufe 2: Verträge einer Klasse, die verschieden heißen. Erst gesetzt, wenn
+  // die Klasse mehrere Namen führt — sonst bliebe die Auswahl bei einem Tap.
+  const [namensWahl, setNamensWahl] = useState<Tarif[] | null>(null);
+
+  // "ändern" im Ergebnis fängt von vorn an; "zurück" aus der Namensfrage
+  // behält dagegen die geöffnete Vollliste — wer sich durch 66 Vodafone-Knöpfe
+  // gescrollt hat, will nach einem Fehlgriff nicht wieder oben anfangen.
+  const zurueckZurAuswahl = () => {
+    setGewaehlt(null);
+    setNamensWahl(null);
+    setAlleZeigen(false);
+  };
+  const zurueckAusNamensfrage = () => setNamensWahl(null);
 
   if (!anbieter || gemessenMbps == null || gemessenMbps <= 0) return null;
 
@@ -701,7 +714,42 @@ function TarifClaim({
     );
   }
 
-  // --- Tarif noch nicht gewählt: Ein-Tap-Auswahl ---
+  // --- Stufe 2: die Klasse steht, aber sie führt mehrere Vertragsnamen ---
+  // Ohne diese Rückfrage stünde der kürzeste Name der Klasse im Ergebnis und
+  // später im Kulanz-Brief — auch bei dem, der einen anderen bestellt hat.
+  if (!gewaehlt && namensWahl) {
+    return (
+      <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left dark:border-zinc-800 dark:bg-zinc-950">
+        <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+          <span className="font-semibold">Fast geschafft.</span> Diese Geschwindigkeit gibt es bei{" "}
+          {anbieter} unter mehreren Namen. Welcher steht auf deiner Rechnung?
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {namensWahl.map((tarif) => (
+            <button
+              key={tarif.slug}
+              onClick={() => setGewaehlt(tarif)}
+              className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+            >
+              {tarif.tarifname}
+            </button>
+          ))}
+        </div>
+        <p className="mt-3 text-xs leading-5 text-zinc-500">
+          Alle liefern dieselben zugesicherten Werte — dein Ergebnis ist also dasselbe. Der Name
+          entscheidet nur, welcher Vertrag später im Schreiben an {anbieter} steht.{" "}
+          <button
+            onClick={zurueckAusNamensfrage}
+            className="text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+          >
+            zurück
+          </button>
+        </p>
+      </div>
+    );
+  }
+
+  // --- Stufe 1: Geschwindigkeits-Klasse per Tap ---
   if (!gewaehlt) {
     const optionen = alleZeigen ? tarifKlassen(TARIFE, anbieter) : vorschlaege;
     return (
@@ -714,12 +762,17 @@ function TarifClaim({
           {optionen.map((v) => (
             <button
               key={v.tarif.slug}
-              onClick={() => setGewaehlt(v.tarif)}
-              className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+              onClick={() =>
+                // Ein Name in der Klasse: fertig. Mehrere: erst fragen, welcher
+                // — raten würde hier einen fremden Vertrag ins Ergebnis setzen.
+                v.namensWahl.length === 1 ? setGewaehlt(v.tarif) : setNamensWahl(v.namensWahl)
+              }
+              className="max-w-full rounded-2xl border border-zinc-300 px-4 py-2 text-left text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
             >
-              {v.tarif.tarifname}
+              {v.produkte.join(", ")}
               <span className="ml-1 text-zinc-400">
-                · bis zu {formatMbps(v.tarif.download_max_mbps)}
+                {v.weitereNamen > 0 && `+${v.weitereNamen} weitere `}· bis zu{" "}
+                {formatMbps(v.tarif.download_max_mbps)}
                 {/* Nur wo zwei Knöpfe sonst gleich aussähen: die Werte, die
                     sie wirklich unterscheiden. */}
                 {v.unterscheidung?.normalMbps != null &&
@@ -785,10 +838,7 @@ function TarifClaim({
           {gewaehlt.monatspreis_eur != null &&
             ` · ${preisFormat(gewaehlt.monatspreis_eur)} €/Monat`}
           <button
-            onClick={() => {
-              setGewaehlt(null);
-              setAlleZeigen(false);
-            }}
+            onClick={zurueckZurAuswahl}
             className="ml-2 text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
           >
             ändern
