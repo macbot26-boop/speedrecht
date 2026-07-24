@@ -599,3 +599,132 @@ test("tabellenFinden zählt die Tabellen je Blatt", () => {
   assert.equal(tabellenFinden(O2).length, 4);
   assert.equal(tabellenFinden(NUR_TELEFONIE).length, 0);
 });
+
+// --- Nachbarzelle darf den Wert nicht überschreiben -----------------------
+//
+// Die drei folgenden Vorlagen stammen 1:1 aus echten Blättern, in denen der
+// Parser zuvor den Wert der NACHBARZELLE gelesen hat. Alle drei Fehler haben
+// dieselbe Wurzel: Etwas, das gar nicht zur Zelle gehört, stand an einer
+// Stelle, an der der Parser zuerst nachgesehen hat.
+
+// 1&1 DSL 16: Die regionale Fußnote von "Maximal" läuft auf die Zeile direkt
+// ÜBER "Normalerweise" aus. Dort steht sie ohne ihre erklärenden Wörter —
+// wer von oben nach unten liest, hält die 16 für den Normalwert und rechnet
+// dem Kunden 16 Mbit/s vor, obwohl sein Vertrag 9,5 hergibt.
+const EINSUNDEINS_FUSSNOTE_OBEN = `Produktinformationsblatt gem. § 1 TK-Transparenzverordnung
+
+1&1 DSL 16
+
+                Datenübertragungsrate                           Download                      Upload
+                                                               20 MBit/s In                5,8 MBit/s In
+ Maximal                                                  bestimmten Gebieten          bestimmten Gebieten
+                                                                16 MBit/s                    2,4 MBit/s
+ Normalerweise zur Verfügung stehend                             9,5 Mbit/s                  1,5 Mbit/s
+                                                                                          0,364 MBit/s In
+ Minimal                                                       0,768 MBit/s            bestimmten Gebieten
+                                                                                           0,064 MBit/s
+
+ Weitere Produktinformationen
+`;
+
+test("1&1: Fußnote der Zelle darüber schlägt nicht den echten Normalwert", () => {
+  const [tabelle] = tabellenFinden(EINSUNDEINS_FUSSNOTE_OBEN);
+  assert.equal(tabelle.max.download, 20);
+  assert.equal(tabelle.normal.download, 9.5, "9,5 steht auf der Beschriftungszeile selbst");
+  assert.equal(tabelle.min.download, 0.768);
+  assert.equal(tabelle.normal.upload, 1.5);
+});
+
+// o2 Kabel: Hier steht der echte Upload-Wert eine Zeile ÜBER seiner
+// Beschriftung, und auf der Beschriftungszeile selbst steht die regionale
+// Fußnote — also genau andersherum als bei 1&1. Der Parser muss beide Formen
+// aushalten: Beschriftungszeile zuerst, aber Fußnoten erkennen, egal ob ihre
+// erklärenden Wörter links oder rechts von der Zahl stehen.
+const O2_FUSSNOTE_RECHTS = `Produktinformationsblatt gem. § 1 TK-Transparenzverordnung
+
+  O2 Home M 150
+
+  Datenübertragungsraten
+                                         im Download                         im Upload
+  über Kabel
+                                                                               75 MBit/s
+  Maximal                                 150 MBit/s               50 MBit/s in ausgewählten Regionen
+
+  Normalerweise zur Verfügung                                                  55 MBit/s
+                                          128 MBit/s
+  stehend                                                          35 MBit/s in ausgewählten Regionen
+
+  Minimal                                 105 MBit/s                          15 MBit/s
+
+ Weitere Produktinformationen
+`;
+
+test("o2: regionale Fußnote RECHTS neben der Zahl gilt nicht als Wert", () => {
+  const [tabelle] = tabellenFinden(O2_FUSSNOTE_RECHTS);
+  assert.deepEqual(
+    [tabelle.max.upload, tabelle.normal.upload, tabelle.min.upload],
+    [75, 55, 15],
+    "50 und 35 sind regionale Ausnahmen, nicht die Vertragswerte"
+  );
+  assert.deepEqual(
+    [tabelle.max.download, tabelle.normal.download, tabelle.min.download],
+    [150, 128, 105]
+  );
+});
+
+test("eine Fußnote weiter rechts auf der Zeile entwertet den echten Wert nicht", () => {
+  // Gegenprobe zur Regel oben: Steht die Erläuterung erst nach einem
+  // Spaltensprung, gehört die Zahl davor sehr wohl in die Zelle.
+  const mitAbstand = O2_FUSSNOTE_RECHTS.replace(
+    "150 MBit/s               50 MBit/s in ausgewählten Regionen",
+    "150 MBit/s        75 MBit/s      In einzelnen Regionen 10 MBit/s"
+  );
+  const [tabelle] = tabellenFinden(mitAbstand);
+  assert.equal(tabelle.max.upload, 75);
+});
+
+// Beginnt eine Tabelle oben auf Seite 2, steht der Seitenkopf zwischen ihr
+// und ihrer Überschrift. Er darf nicht als Tarifname durchgehen: Der Nutzer
+// bekäme sonst zwei Knöpfe, von denen der richtig benannte die falschen
+// Werte trägt — und damit das falsche Urteil.
+const O2_SEITENUMBRUCH = `Produktinformationsblatt gem. § 1 TK-Transparenzverordnung
+
+  O2 Home M 150
+
+                Stand 06/26, Version 1.0
+Produktinformationsblatt gem. § 1 TK-Transparenzverordnung
+
+  Datenübertragungsraten
+                                         im Download                         im Upload
+  über Kabel
+
+  Maximal                                 150 MBit/s                          75 MBit/s
+
+  Normalerweise zur Verfügung stehend      128 MBit/s                          55 MBit/s
+
+  Minimal                                 105 MBit/s                          15 MBit/s
+
+ Weitere Produktinformationen
+`;
+
+test("Seitenkopf von Seite 2 wird nicht zum Tarifnamen", () => {
+  const [tabelle] = tabellenFinden(O2_SEITENUMBRUCH);
+  assert.equal(tabelle.ueberschrift, "O2 Home M 150");
+});
+
+test("Blatt mit Geschwindigkeiten, aber unlesbarer Tabelle, meldet sich LAUT", () => {
+  // Ein Anbieter gestaltet sein Blatt um, und der Parser versteht die Form
+  // nicht mehr. Das darf nicht im selben Topf landen wie ein reines
+  // Telefonie-Blatt — sonst verschwindet der Tarif still aus der Datenbank.
+  const unbekannteForm = `Produktinformationsblatt gem. § 1 TK-Transparenzverordnung
+
+Beispiel-Tarif
+
+  Datenübertragungsrate            Runterladen            Hochladen
+
+  Maximal                          100 MBit/s              40 MBit/s
+`;
+  const ergebnis = pibAuswerten(unbekannteForm);
+  assert.equal(ergebnis.uebersprungen, undefined);
+  assert.match(ergebnis.fehler, /keine lesbare Tabelle/);
+});

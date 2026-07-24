@@ -76,9 +76,17 @@ async function holen(url, alsPuffer = false, versuch = 1) {
       await new Promise((r) => setTimeout(r, 1_500 * versuch));
       return holen(url, alsPuffer, versuch + 1);
     }
-    throw new Error(err.message);
+    // Die Fehlerliste am Ende ist die einzige Spur, die der Betreiber hat —
+    // ohne Adresse ist sie nicht nachverfolgbar.
+    throw new Error(`${url}: ${err.message}`, { cause: err });
   }
 }
+
+// Der Zwischenspeicher altert nicht und die Anbieter halten ihre Adressen
+// stabil — ein Lauf ohne --frisch kann also monatealte Blätter erneut
+// auswerten. Darum wird am Ende laut gesagt, wie viel aus der Konserve kam.
+let ausZwischenspeicher = 0;
+let geladen = 0;
 
 /** Lädt ein PDF und gibt seinen Text zurück — mit Zwischenspeicher. */
 async function pdfText(url) {
@@ -87,6 +95,9 @@ async function pdfText(url) {
 
   if (FRISCH || !existsSync(pdfPfad)) {
     await writeFile(pdfPfad, await holen(url, true));
+    geladen++;
+  } else {
+    ausZwischenspeicher++;
   }
   const { stdout } = await execFileAsync("pdftotext", ["-layout", pdfPfad, "-"], {
     maxBuffer: 20 * 1024 * 1024,
@@ -405,6 +416,36 @@ if (fehlgeschlagen.length > 0) {
   process.exit(1);
 }
 
+// --nur läuft über einen TEIL der Anbieter. Ohne Zusammenführung stünden
+// hinterher nur diese in der Datei — die übrigen wären stillschweigend
+// gelöscht, und ihre Kunden bekämen im Ergebnis "für X haben wir die Tarife
+// noch nicht hinterlegt". scripts/pib-listen/README.md empfiehlt genau solche
+// Teilläufe, darum wird hier zusammengeführt statt überschrieben.
+let uebernommen = 0;
+if (NUR) {
+  const ohneTarife = laufende
+    .map((a) => a.anbieter)
+    .filter((name) => !tarife.some((t) => t.anbieter === name));
+  if (ohneTarife.length > 0) {
+    console.error(`\n❌ Kein einziger Tarif eingelesen für: ${ohneTarife.join(", ")}`);
+    console.error("Abbruch ohne Schreiben.");
+    process.exit(1);
+  }
+
+  if (!existsSync(AUSGABE)) {
+    console.warn(
+      `\n⚠️  ${AUSGABE} gibt es noch nicht — die Datei enthält danach ausschließlich ` +
+        `${laufende.map((a) => a.anbieter).join(", ")}.`
+    );
+  } else {
+    const gelaufen = new Set(laufende.map((a) => a.anbieter));
+    const bestand = JSON.parse(await readFile(AUSGABE, "utf8")).tarife ?? [];
+    const behalten = bestand.filter((t) => !gelaufen.has(t.anbieter));
+    tarife.push(...behalten);
+    uebernommen = behalten.length;
+  }
+}
+
 if (tarife.length < 30) {
   console.error(`\n❌ Nur ${tarife.length} Tarife — das ist zu wenig. Abbruch ohne Schreiben.`);
   process.exit(1);
@@ -430,18 +471,35 @@ tarife.sort(
     a.slug.localeCompare(b.slug)
 );
 
+// Das Stand-Datum gilt für die ganze Datei, also für ihren ÄLTESTEN Teil.
+// Nach einem Teillauf sind die übernommenen Anbieter so alt wie zuvor —
+// "heute" darüberzuschreiben behauptete eine Frische, die es nicht gibt.
+const heute = new Date().toISOString().slice(0, 10);
+const standVorher = existsSync(AUSGABE)
+  ? JSON.parse(await readFile(AUSGABE, "utf8")).stand
+  : null;
+
 const daten = {
-  stand: new Date().toISOString().slice(0, 10),
+  stand: uebernommen > 0 && standVorher ? standVorher : heute,
   quelle: "Offizielle Produktinformationsblätter der Anbieter (§ 1 TK-Transparenzverordnung)",
   tarife,
 };
 
 await writeFile(AUSGABE, JSON.stringify(daten, null, 1));
 
+const gelaufen = new Set(laufende.map((a) => a.anbieter));
 const jeAnbieter = new Map();
 for (const t of tarife) jeAnbieter.set(t.anbieter, (jeAnbieter.get(t.anbieter) ?? 0) + 1);
 console.log(`\nGeschrieben: ${AUSGABE}`);
 for (const [anbieter, anzahl] of [...jeAnbieter].sort()) {
-  console.log(`  ${String(anzahl).padStart(4)} ${anbieter}`);
+  const herkunft = gelaufen.has(anbieter) ? "" : "  (unverändert übernommen)";
+  console.log(`  ${String(anzahl).padStart(4)} ${anbieter}${herkunft}`);
 }
 console.log(`  ${String(tarife.length).padStart(4)} gesamt, Stand ${daten.stand}`);
+if (ausZwischenspeicher > 0) {
+  console.log(
+    `\n⚠️  ${ausZwischenspeicher} von ${geladen + ausZwischenspeicher} Blättern kamen aus dem ` +
+      `Zwischenspeicher (${CACHE}) und können veraltet sein — für einen belastbaren Stand ` +
+      `mit --frisch laufen lassen.`
+  );
+}

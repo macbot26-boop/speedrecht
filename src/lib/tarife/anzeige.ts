@@ -12,8 +12,16 @@ export function aufAnzeige(n: number): number {
   return n >= 100 ? Math.round(n) : Math.round(n * 10) / 10;
 }
 
-/** Dieselbe Zahl als Text — "–", wenn nichts vorliegt. */
+/**
+ * Dieselbe Zahl als Text — "–", wenn nichts vorliegt.
+ *
+ * Geht bewusst durch aufAnzeige, statt die Rundung ein zweites Mal
+ * hinzuschreiben: Sonst stünde 99,96 als "100.0" auf dem Schirm, während die
+ * Klassenbildung es als 100 führt — die beiden Regeln liefen an der Grenze
+ * auseinander, und genau das soll diese Datei verhindern.
+ */
 export function formatMbps(wert: number | null): string {
   if (wert === null) return "–";
-  return wert >= 100 ? Math.round(wert).toString() : wert.toFixed(1);
+  const gerundet = aufAnzeige(wert);
+  return gerundet >= 100 ? gerundet.toString() : gerundet.toFixed(1);
 }

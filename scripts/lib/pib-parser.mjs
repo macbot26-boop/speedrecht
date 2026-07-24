@@ -82,20 +82,25 @@ function spaltenKopf(zeile) {
 }
 
 /**
- * Liest die Raten aus einem Zeilenfenster und ordnet sie über die
- * waagerechte Position der Download- bzw. Upload-Spalte zu. Je Spalte
- * zählt der ERSTE Treffer — nachgestellte Erläuterungen ("Bei Glasfaser
- * 50 Mbit/s in ausgewählten Regionen") kommen immer danach und werden
- * dadurch verworfen.
+ * Regionale Einschränkung, die RECHTS an einer Rate klebt: "50 MBit/s in
+ * ausgewählten Regionen". Entscheidend ist der Spaltenabstand, nicht das
+ * bloße Vorkommen der Wörter — ein echter Wert darf weiter rechts auf
+ * derselben Zeile eine Fußnote haben ("250 MBit/s    In einzelnen
+ * Regionen 10 MBit/s"), die dann durch den Spaltensprung getrennt ist.
  */
+const ZUSATZ_RECHTS = /^ ?(?:in|bei|f[üu]r)\b[^.]{0,40}?(?:Region|Gebiet|Ausbaugebiet)/i;
+
 /**
  * Ist diese Rate der eigentliche Zellenwert — oder nur ein erläuternder
  * Zusatz? Blätter schreiben neben den Wert regionale Ausnahmen ("In
  * bestimmten Gebieten 10 MBit/s", "Bei Glasfaser 50 Mbit/s oder 125
  * Mbit/s"). Wer die mitliest, schreibt dem Nutzer einen fremden Vertrag zu.
  * Der echte Wert steht immer allein in seiner Spalte.
+ *
+ * Die Erläuterung steht mal links vom Wert, mal rechts — beide Seiten
+ * werden geprüft, jeweils nur bis zum nächsten Spaltensprung.
  */
-function istZusatz(zeile, position) {
+function istZusatz(zeile, position, laenge) {
   const davor = zeile
     .slice(0, position)
     .split(/\s{2,}/)
@@ -103,15 +108,22 @@ function istZusatz(zeile, position) {
     // Der Wert der Nachbarspalte darf nur durch ein Leerzeichen getrennt
     // sein — er macht diese Rate nicht zum Zusatz.
     .replace(/\d[\d.,]*\s*[kMG]?bits?\/s\s*$/i, "");
-  return /[A-Za-zÄÖÜäöüß]/.test(davor);
+  if (/[A-Za-zÄÖÜäöüß]/.test(davor)) return true;
+  return ZUSATZ_RECHTS.test(zeile.slice(position + laenge));
 }
+
+/**
+ * Liest die Raten einer Zeile und ordnet sie über die waagerechte Position
+ * der Download- bzw. Upload-Spalte zu. Je Spalte zählt der erste Treffer,
+ * der kein erläuternder Zusatz ist.
+ */
 
 function ratenDerZeile(zeile, spalten) {
   let download = null;
   let upload = null;
   for (const treffer of zeile.matchAll(RATE)) {
     const wert = alsMbit(treffer[1], treffer[2]);
-    if (wert === null || istZusatz(zeile, treffer.index)) continue;
+    if (wert === null || istZusatz(zeile, treffer.index, treffer[0].length)) continue;
     const naeherAmDownload =
       Math.abs(treffer.index - spalten.download) <=
       Math.abs(treffer.index - spalten.upload);
@@ -124,10 +136,30 @@ function ratenDerZeile(zeile, spalten) {
   return { download, upload };
 }
 
-function zelleLesen(zeilen, von, bis, spalten) {
+/**
+ * Liest eine Tabellenzelle aus dem Fenster [von … bis] um ihre
+ * Beschriftungszeile herum.
+ *
+ * Die REIHENFOLGE ist hier die eigentliche Logik: Zuerst zählt die
+ * Beschriftungszeile selbst, denn dort steht der Wert der Zelle. Erst
+ * wenn die Zeile für eine Spalte nichts hergibt, gelten die Nachbarzeilen
+ * (o2 bricht Zellen so um, dass der Wert eine Zeile ÜBER seiner
+ * Beschriftung steht).
+ *
+ * Von oben nach unten zu lesen wäre falsch: Läuft die regionale Fußnote
+ * der Zelle darüber ("In bestimmten Gebieten 16 MBit/s") auf die Zeile
+ * direkt über der Beschriftung aus, stünde sie ohne ihre erklärenden
+ * Wörter allein da und schlüge den echten Wert. Bei 1&1 DSL 16 hätte das
+ * "normalerweise 16" statt 9,5 ergeben — und damit dem Nutzer einen
+ * Anspruch vorgerechnet, den sein Vertrag nicht hergibt.
+ */
+function zelleLesen(zeilen, von, bis, spalten, beschriftung) {
+  const reihenfolge = [beschriftung];
+  for (let i = von; i <= bis; i++) if (i !== beschriftung) reihenfolge.push(i);
+
   let download = null;
   let upload = null;
-  for (let i = von; i <= bis; i++) {
+  for (const i of reihenfolge) {
     if (zeilen[i] === undefined) continue;
     const zeile = ratenDerZeile(zeilen[i], spalten);
     if (download === null) download = zeile.download;
@@ -195,6 +227,14 @@ function blockUeberschrift(zeilen, kopfZeile) {
     // (o2 setzt dort auch die Zugangsart hinein) — gehört zur Tabelle.
     if (spaltenKopf(zeilen[i])) continue;
     if (/^\d*\s*Daten[üu]bertragungsrate/i.test(z)) continue;
+    // Seitenkopf und -fuß mehrseitiger Blätter. Beginnt eine Tabelle oben
+    // auf Seite 2, stünden sie zwischen ihr und ihrer Überschrift — und
+    // "Produktinformationsblatt gem. § 1 TK-Transparenzverordnung" landete
+    // als Tarifname beim Nutzer. Der ist dann nicht bloß hässlich: Der
+    // richtig benannte Knopf desselben Blattes trägt andere Werte, also
+    // führt die Wahl des vermeintlich passenden Namens zum falschen Urteil.
+    if (/^\d*\s*Produktinformationsblatt/i.test(z)) continue;
+    if (/^Stand\b[^.]*\bVersion\b/i.test(z)) continue;
     if (/^(?:Maximal|Normalerweise|stehend|Minimal)\b/i.test(z)) continue;
     if (/^(?:im|Im)\s+(?:Download|Upload)\b/i.test(z)) continue;
     if (/(?:^|\s)über\s/i.test(z) && z.length < 60) continue;
@@ -292,7 +332,7 @@ export function tabellenFinden(text) {
       const grenzeUnten =
         m + 1 < marker.length ? marker[m + 1].zeile - 2 : ende - 1;
       const bis = Math.max(Math.min(zeile + 2, grenzeUnten), zeile);
-      werte[marker[m].schluessel] = zelleLesen(zeilen, von, bis, spalten);
+      werte[marker[m].schluessel] = zelleLesen(zeilen, von, bis, spalten, zeile);
     }
 
     tabellen.push({
@@ -409,6 +449,17 @@ export function pibAuswerten(text, { slug = "", nurWenn = null } = {}) {
 
   const tabellen = tabellenFinden(text);
   if (tabellen.length === 0) {
+    // Reine Telefonie- und TV-Blätter haben schlicht keine solche Tabelle —
+    // das ist in Ordnung. Ein Blatt, das erkennbar Geschwindigkeiten nennt,
+    // aber keine lesbare Tabelle hergibt, ist dagegen ein Aufbau, den wir
+    // nicht verstanden haben. Beides in denselben Topf zu werfen hieße:
+    // ein umgestaltetes Blatt verschwindet still aus der Datenbank.
+    const sprichtVonTempo =
+      /Normalerweise\s+zur\s+Verf[üu]gung|Daten[üu]bertragungsrate/i.test(text) &&
+      /\d\s*[kMG]?bits?\/s/i.test(text);
+    if (sprichtVonTempo) {
+      return { fehler: "Blatt nennt Geschwindigkeiten, aber keine lesbare Tabelle" };
+    }
     return { uebersprungen: "keine Geschwindigkeits-Tabelle" };
   }
 

@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { tarifVorschlaege, tarifKlassen } from "./vorschlag.ts";
+import { aufAnzeige, formatMbps } from "./anzeige.ts";
 
 const daten = JSON.parse(
   await readFile(new URL("./tarife.generated.json", import.meta.url), "utf8")
@@ -147,9 +148,12 @@ test("Bezeichner sind eindeutig — sie sind der Listen-Schlüssel der Auswahl",
 
 // --- Auswahl bleibt unterscheidbar ----------------------------------------
 
-// So beschriftet die Oberfläche einen Auswahl-Knopf.
+// So beschriftet die Oberfläche einen Auswahl-Knopf. Bewusst mit dem ECHTEN
+// formatMbps statt einer Nachbildung: Der Test soll ja gerade merken, wenn
+// Anzeige und Klassenbildung auseinanderlaufen — eine Kopie der Rundung
+// bliebe genau dann grün, wenn sie es nicht dürfte.
 function knopfText(v) {
-  const zeig = (n) => (n >= 100 ? Math.round(n).toString() : n.toFixed(1));
+  const zeig = formatMbps;
   return (
     `${v.tarif.tarifname} · bis zu ${zeig(v.tarif.download_max_mbps)}` +
     (v.unterscheidung?.normalMbps != null ? `, normal ${zeig(v.unterscheidung.normalMbps)}` : "") +
@@ -207,4 +211,30 @@ test("Werte, die sich erst hinter der Anzeige unterscheiden, gelten als ein Tari
   const k = tarifKlassen(mini, "Test");
   assert.equal(k.length, 1);
   assert.equal(k[0].varianten, 2);
+});
+
+// --- Anzeige-Rundung -------------------------------------------------------
+
+test("Anzeige und Klassen-Rundung stimmen an jeder Stelle überein", () => {
+  // Die Auswahl BÜNDELT Tarife über aufAnzeige, BESCHRIFTET sie aber über
+  // formatMbps. Liefen die beiden auseinander, sähen zwei Knöpfe gleich aus,
+  // gehörten aber zu verschiedenen Klassen — der Nutzer könnte nur raten,
+  // welcher sein Vertrag ist. Heikel sind die Grenzfälle knapp unter 100,
+  // wo die Regel von einer Nachkommastelle auf ganzzahlig umspringt.
+  const proben = [0.064, 0.768, 1.6, 9.5, 16, 49.96, 83.75, 83.8, 99.94, 99.96, 100, 128, 249.5, 1000];
+  for (const wert of proben) {
+    assert.equal(formatMbps(wert), formatMbps(aufAnzeige(wert)), `${wert} rundet uneinheitlich`);
+  }
+  assert.equal(formatMbps(99.96), "100");
+  assert.equal(aufAnzeige(99.96), 100);
+  assert.equal(formatMbps(83.75), "83.8");
+  assert.equal(formatMbps(null), "–");
+});
+
+test("jeder Wert der echten Tabelle wird einheitlich gerundet", () => {
+  for (const t of daten.tarife) {
+    for (const feld of ["download_max_mbps", "download_normal_mbps", "download_min_mbps"]) {
+      assert.equal(formatMbps(t[feld]), formatMbps(aufAnzeige(t[feld])), `${t.slug}.${feld}`);
+    }
+  }
 });
