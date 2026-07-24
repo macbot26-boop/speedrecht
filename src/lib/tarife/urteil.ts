@@ -14,6 +14,7 @@
 //
 // Pur gehalten (Tarif als Parameter) — testbar ohne Bundler-Magie.
 
+import { aufAnzeige } from "./anzeige.ts";
 import type { Tarif } from "./vorschlag";
 
 /**
@@ -22,14 +23,6 @@ import type { Tarif } from "./vorschlag";
  * - "unter_min"  — unter der vertraglich zugesicherten Mindestrate
  */
 export type UrteilTon = "gut" | "unter_norm" | "unter_min";
-
-// Auf die Anzeige-Genauigkeit runden (≥100 → ganzzahlig, sonst 1 Nachkomma).
-// Das Urteil wird auf denselben Zahlen gefällt, die auch angezeigt werden —
-// sonst könnte "bei dir kommen 83,8 an" unter einem "das passt nicht" stehen,
-// obwohl die gezeigten Zahlen identisch sind (Messwert war roh z. B. 83,75).
-function aufAnzeige(n: number): number {
-  return n >= 100 ? Math.round(n) : Math.round(n * 10) / 10;
-}
 
 /**
  * Bewertet eine gemessene Download-Geschwindigkeit gegen den bestellten Tarif.

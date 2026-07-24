@@ -1,0 +1,1768 @@
+{
+ "anbieter": "Vodafone",
+ "quelle": "https://www.vodafone.de/hilfe/pib-privatkunden-tarife-festnetz.html",
+ "gesammelt_am": "2026-07-24",
+ "hinweis": "Die Uebersichtsseite baut ihre Liste per JavaScript auf - ein reiner HTTP-Abruf liefert 0 Links. Diese Liste wurde daher einmalig ueber einen echten Browser eingesammelt und liegt versioniert im Repo. Auffrischen: siehe scripts/pib-listen/README.md. Die PDFs selbst laedt das Sammel-Skript wieder automatisch.",
+ "blaetter": [
+  {
+   "titel": "GigaZuhause 1000 Kabel (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause_Kabel_1000-Oktober-2025_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause 800 Kabel (ab Januar 2026)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause_Kabel_800.pdf"
+  },
+  {
+   "titel": "GigaZuhause 600 Kabel (ab Januar 2026)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause_Kabel_600.pdf"
+  },
+  {
+   "titel": "GigaZuhause Flat 300 Kabel (ab Mai 2026)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-Flat-300-Kabel.pdf"
+  },
+  {
+   "titel": "GigaZuhause 150 Kabel (ab Januar 2026)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause_Kabel_150.pdf"
+  },
+  {
+   "titel": "GigaZuhause 50 Kabel (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause_Kabel_50-Oktober-2025_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause 50 Kabel 12 Monate (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause_Kabel_50-12-Monate-Oktober-2025_20250911.pdf"
+  },
+  {
+   "titel": "Red Phone 12 Monate Festnetz (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-RedPhone-12-Monate-Oktober-2025_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause 250 DSL Festnetz (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DSL_250_20251026_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause 250 DSL Bandbreite 175000 Festnetz (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DSL_250_175_20251026_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause 100 DSL Festnetz (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DSL_100_20251026_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause 50 DSL Festnetz (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DSL_50_20251026_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause 50 DSL 12 Monate (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DSL_50_12_Monate_20251026_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause 50 DSL Bandbreite 25000 Festnetz (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DSL_50_25_20251026_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL Festnetz (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DSL_16_20251026_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL Bandbreite 1000 Festnetz (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DSL_16_1_20251026_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL Bandbreite 2000 Festnetz (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DSL_16_2_20251026_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL Bandbreite 3000 Festnetz (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DSL_16_3_20251026_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL Bandbreite 6000 Festnetz (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DSL_16_6_20251026_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 16 DSL Bandbreite 3000 mit Regio-Zuschlag Festnetz (ab November 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-16-dsl-bb3-regio-nov-22.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 50 + TV (ab Oktober 2016)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-50_TV_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 50 Bandbreite 25000 + TV (ab Oktober 2016)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-50-BB25_TV_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 100 + TV (ab Oktober 2016)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-100_TV_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 250 + TV (ab August 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-DSL-250-TV-Aug-18.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 + TV (ab Oktober 2016)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-16_TV_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 mit Regio-Zuschlag + TV (ab Oktober 2016)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-16_Regio_TV_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 6000 + TV (ab Oktober 2016)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-250-dsl-okt-23.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 6000 mit Regio-Zuschlag + TV (ab Oktober 2016)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-16-BB6_Regio_TV.pdf"
+  },
+  {
+   "titel": "GigaZuhause 1000 Glasfaser - Ausbau durch Kooperationspartner I (Deutsche Telekom, ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-1000-Glasfaser-DT-20251026_20250916.pdf"
+  },
+  {
+   "titel": "GigaZuhause 1000 Glasfaser 12 Monate - Ausbau durch Kooperationspartner I (Deutsche Telekom, ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-1000-Glasfaser-12Monate-DT-20251026_20250916.pdf"
+  },
+  {
+   "titel": "GigaZuhause 600 Glasfaser - Ausbau durch Kooperationspartner I (Deutsche Telekom, ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-600-Glasfaser-DT-20251026_20250916.pdf"
+  },
+  {
+   "titel": "GigaZuhause 300 Glasfaser - Ausbau durch Kooperationspartner I (Deutsche Telekom, ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-300-Glasfaser-DT-20251026_20250916.pdf"
+  },
+  {
+   "titel": "GigaZuhause 150 Glasfaser - Ausbau durch Kooperationspartner I (Deutsche Telekom, ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-150-Glasfaser-DT-20251026_20250916.pdf"
+  },
+  {
+   "titel": "GigaZuhause 1000 Glasfaser - Ausbau durch Kooperationspartner II (OXG, ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-1000-Glasfaser-OXG-20251026_20250916.pdf"
+  },
+  {
+   "titel": "GigaZuhause 1000 Glasfaser 12 Monate - Ausbau durch Kooperationspartner II (OXG, ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-1000-Glasfaser-12Monate-OXG-20251026_20250916.pdf"
+  },
+  {
+   "titel": "GigaZuhause 600 Glasfaser - Ausbau durch Kooperationspartner II (OXG, ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-600-Glasfaser-OXG-20251026_20250916.pdf"
+  },
+  {
+   "titel": "GigaZuhause 300 Glasfaser - Ausbau durch Kooperationspartner II (OXG, ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-300-Glasfaser-OXG-20251026_20250916.pdf"
+  },
+  {
+   "titel": "GigaZuhause 150 Glasfaser - Ausbau durch Kooperationspartner II (OXG, ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-150-Glasfaser-OXG-20251026_20250916.pdf"
+  },
+  {
+   "titel": "GigaZuhause 1000 Glasfaser - Ausbau durch Kooperationspartner III (Deutsche Glasfaser, ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-1000-Glasfaser-DG-20251026_20250916.pdf"
+  },
+  {
+   "titel": "GigaZuhause 600 Glasfaser - Ausbau durch Kooperationspartner III (Deutsche Glasfaser, ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-600-Glasfaser-DG-20251026_20250916.pdf"
+  },
+  {
+   "titel": "GigaZuhause 300 Glasfaser - Ausbau durch Kooperationspartner III (Deutsche Glasfaser, ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-300-Glasfaser-DG-20251026_20250916.pdf"
+  },
+  {
+   "titel": "GigaZuhause 150 Glasfaser - Ausbau durch Kooperationspartner III (Deutsche Glasfaser, ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-150-Glasfaser-DG-20251026_20250916.pdf"
+  },
+  {
+   "titel": "GigaZuhause 1000 Glasfaser – Regio-Zuschlag 0 (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-1000-Glasfaser-Regiozuschlag0-20251026_20251007.pdf"
+  },
+  {
+   "titel": "GigaZuhause 600 Glasfaser – Regio-Zuschlag 0 (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-600-Glasfaser-Regiozuschlag0-20251026_20251007.pdf"
+  },
+  {
+   "titel": "GigaZuhause 300 Glasfaser – Regio-Zuschlag 0 (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-300-Glasfaser-Regiozuschlag0-20251026_20251007.pdf"
+  },
+  {
+   "titel": "GigaZuhause 150 Glasfaser – Regio-Zuschlag 0 (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-150-Glasfaser-Regiozuschlag0-20251026_20251007.pdf"
+  },
+  {
+   "titel": "GigaZuhause 1000 Glasfaser 12 Monate – Regio-Zuschlag 0 (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-1000-Glasfaser-12Monate_Regiozuschlag0-20251026_20251007.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 600 Glasfaser – Regio-Zuschlag 0 (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-Basic-600-Glasfaser-Regiozuschlag0-20251026_20251007.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 150 Glasfaser – Regio-Zuschlag 0 (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-Basic-150-Glasfaser-Regiozuschlag0-20251026_20251007.pdf"
+  },
+  {
+   "titel": "GigaZuhause 1000 Glasfaser – Regio-Zuschlag 5 (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-1000-Glasfaser-Regiozuschlag5-20251026_20251007.pdf"
+  },
+  {
+   "titel": "GigaZuhause 600 Glasfaser – Regio-Zuschlag 5 (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-600-Glasfaser-Regiozuschlag5-20251026_20251007.pdf"
+  },
+  {
+   "titel": "GigaZuhause 300 Glasfaser – Regio-Zuschlag 5 (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-300-Glasfaser-Regiozuschlag5-20251026_20251007.pdf"
+  },
+  {
+   "titel": "GigaZuhause 150 Glasfaser – Regio-Zuschlag 5 (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-150-Glasfaser-Regiozuschlag5-20251026_20251007.pdf"
+  },
+  {
+   "titel": "GigaZuhause 1000 Glasfaser 12 Monate – Regio-Zuschlag 5 (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-1000-Glasfaser-12Monate-Regiozuschlag5-20251026_20251007.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 600 Glasfaser – Regio-Zuschlag 5 (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-Basic-600-Glasfaser-Regiozuschlag5-20251026_20251007.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 150 Glasfaser – Regio-Zuschlag 5 (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause-Basic-150-Glasfaser-Regiozuschlag5-20251026_20251007.pdf"
+  },
+  {
+   "titel": "GigaZuhause CableMax 1000 (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-CableMax1000-Oktober-2025_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause 500 Kabel (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause_Kabel_500-Oktober-2025_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause 250 Kabel (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause_Kabel_250-Oktober-2025_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause 100 Kabel (ab Oktober 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB-GigaZuhause_Kabel_100-Oktober-2025_20250911.pdf"
+  },
+  {
+   "titel": "GigaZuhause 50 Glasfaser - Ausbau durch Kooperationspartner I (Deutsche Telekom)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_Glasfaser_50_DTAG_Mrz_2025.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 50 Glasfaser - Ausbau durch Kooperationspartner I (Deutsche Telekom)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_Glasfaser_Basic_50_DTAG_Mrz_2025.pdf"
+  },
+  {
+   "titel": "GigaZuhause 1000 Glasfaser – Ausbau durch Kooperationspartner II (OXG)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_GigaZuhause_1000_Glasfaser_OXG.pdf"
+  },
+  {
+   "titel": "GigaZuhause 500 Glasfaser – Ausbau durch Kooperationspartner II (OXG)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_GigaZuhause_500_Glasfaser_OXG.pdf"
+  },
+  {
+   "titel": "GigaZuhause 250 Glasfaser – Ausbau durch Kooperationspartner II (OXG)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_GigaZuhause_250_Glasfaser_OXG.pdf"
+  },
+  {
+   "titel": "GigaZuhause 100 Glasfaser – Ausbau durch Kooperationspartner II (OXG)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_GigaZuhause_100_Glasfaser_OXG.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic Glasfaser 1000 mit Regio-Zuschlag 5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-1000-glasfaser-regio5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic Glasfaser 1000 mit Regio-Zuschlag 5 für 12 Monate (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-1000-glasfaser-regio5-12-monate-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic Glasfaser 750 mit Regio-Zuschlag 5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-750-glasfaser-regio5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic Glasfaser 500 mit Regio-Zuschlag 5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-500-glasfaser-regio5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic Glasfaser 250 mit Regio-Zuschlag 5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-250-glasfaser-regio5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic Glasfaser 100 mit Regio-Zuschlag 5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-100-glasfaser-regio5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic Glasfaser 50 mit Regio-Zuschlag 5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-50-glasfaser-regio5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 1000 Glasfaser mit Regio-Zuschlag 5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-1000-glasfaser-regio5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 500 Glasfaser mit Regio-Zuschlag 5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-500-glasfaser-regio5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 250 Glasfaser mit Regio-Zuschlag 5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-250-glasfaser-regio5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 100 Glasfaser mit Regio-Zuschlag 5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-100-glasfaser-regio5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 50 Glasfaser mit Regio-Zuschlag 5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-50-glasfaser-regio5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic Glasfaser 1000 mit Regio-Zuschlag 17,5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-1000-glasfaser-regio17-5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic Glasfaser 1000 mit Regio-Zuschlag 17,5 für 12 Monate (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-1000-glasfaser-regio17-5-12-monate-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic Glasfaser 750 mit Regio-Zuschlag 17,5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-750-glasfaser-regio17-5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic Glasfaser 500 mit Regio-Zuschlag 17,5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-16-dsl-bb2-regio-nov-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic Glasfaser 250 mit Regio-Zuschlag 17,5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-250-glasfaser-regio17-5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic Glasfaser 100 mit Regio-Zuschlag 17,5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-100-glasfaser-regio17-5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic Glasfaser 50 mit Regio-Zuschlag 17,5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-50-glasfaser-regio17-5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 1000 Glasfaser mit Regio-Zuschlag 17,5 (ab Oktober 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-1000-glasfaser-regio17-5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 750 Glasfaser mit Regio-Zuschlag 17,5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-750-glasfaser-regio17-5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 500 Glasfaser mit Regio-Zuschlag 17,5 (ab Oktober 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-500-glasfaser-regio17-5-okt-23.pdf"
+  },
+  {
+   "titel": "GigaZuhause 250 Glasfaser mit Regio-Zuschlag 17,5 (ab Oktober 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-250-glasfaser-regio17-5-okt-23.pdf"
+  },
+  {
+   "titel": "GigaZuhause 100 Glasfaser mit Regio-Zuschlag 17,5 (ab Oktober 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-100-glasfaser-regio17-5-okt-23.pdf"
+  },
+  {
+   "titel": "GigaZuhause 50 Glasfaser mit Regio-Zuschlag 17,5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-50-glasfaser-regio17-5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 100 Glasfaser - Ausbau durch Kooperationspartner I (Deutsche Telekom, ab Juli 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_100_Telekom.pdf"
+  },
+  {
+   "titel": "GigaZuhause 250 DSL Bandbreite 175000 Festnetz (ab Oktober 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-250-dsl-bb175-okt-23.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 250 DSL Bandbreite 175000 Festnetz (ab Oktober 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-250-dsl-bb175-okt-23.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL Festnetz (ab November 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-16-dsl-nov-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 50 DSL Festnetz (ab Juli 2024)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/GigaZuhause_50_DSL_Jul_2024.pdf"
+  },
+  {
+   "titel": "GigaZuhause 100 DSL Festnetz (ab November 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-dsl-100-nov-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 250 DSL Festnetz (ab November 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-250-dsl-nov-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause DSL 16 12 Monate Festnetz (ab November 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-16-dsl-12-monate-nov-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL Bandbreite 1000 Festnetz (ab November 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-16-dsl-bb1-nov-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL Bandbreite 2000 Festnetz (ab November 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-16-dsl-bb2-nov-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 1000 Glasfaser – Ausbau durch Kooperationspartner II (Deutsche Glasfaser oder OXG)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DG_OXG_1000.pdf"
+  },
+  {
+   "titel": "GigaZuhause CableMax 1000 (ab September 2025)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/vf-gigazuhause-cablemax1000-Septemer-2025.pdf"
+  },
+  {
+   "titel": "GigaZuhause 1000 Kabel (ab November 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_GigaZuhause_Kabel_1000_Nov_2023.pdf"
+  },
+  {
+   "titel": "GigaZuhause 500 Kabel (ab November 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_GigaZuhause_Kabel_500_Nov_2023.pdf"
+  },
+  {
+   "titel": "GigaZuhause 250 Kabel (ab November 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_GigaZuhause_Kabel_250_Nov_2023.pdf"
+  },
+  {
+   "titel": "GigaZuhause 100 Kabel (ab November 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_GigaZuhause_Kabel_100_Nov_2023.pdf"
+  },
+  {
+   "titel": "GigaZuhause 50 Kabel (ab November 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_GigaZuhause_Kabel_50_Nov_2023.pdf"
+  },
+  {
+   "titel": "GigaZuhause 50 Kabel 12 Monate (ab November 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_GigaZuhause_Kabel_50_12_Monate_Nov_2023.pdf"
+  },
+  {
+   "titel": "Red Phone 12 Monate Festnetz (ab April 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/202304_PIB_Red_Phone_12_Monate.pdf"
+  },
+  {
+   "titel": "GigaZuhause 100 Glasfaser – Ausbau durch Kooperationspartner II (Deutsche Glasfaser oder OXG)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DG_OXG_100.pdf"
+  },
+  {
+   "titel": "GigaZuhause 250 Glasfaser – Ausbau durch Kooperationspartner II (Deutsche Glasfaser oder OXG)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DG_OXG_250.pdf"
+  },
+  {
+   "titel": "GigaZuhause 500 Glasfaser – Ausbau durch Kooperationspartner II (Deutsche Glasfaser oder OXG)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DG_OXG_500.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 250 DSL Bandbreite 175000 Festnetz (ab November 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-250-dsl-bb175-nov-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 250 DSL Bandbreite 175000 Festnetz (ab November 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-250-dsl-bb175-nov-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 50 DSL Bandbreite 25000 Festnetz (ab November 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-50-dsl-bb25-nov-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 1000 Glasfaser - Ausbau durch Kooperationspartner II (Deutsche Glasfaser, ab Juni 2024)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DG_1000.pdf"
+  },
+  {
+   "titel": "GigaZuhause 500 Glasfaser - Ausbau durch Kooperationspartner II (Deutsche Glasfaser, ab Juni 2024)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DG_500.pdf"
+  },
+  {
+   "titel": "GigaZuhause 250 Glasfaser - Ausbau durch Kooperationspartner II (Deutsche Glasfaser, ab Juni 2024)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DG_250.pdf"
+  },
+  {
+   "titel": "GigaZuhause 100 Glasfaser - Ausbau durch Kooperationspartner II (Deutsche Glasfaser, ab Juni 2024)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_DG_100.pdf"
+  },
+  {
+   "titel": "GigaZuhause 500 Kabel (ab April 2023)",
+   "url": "https://www.vodafone.de/infofaxe/4510.pdf"
+  },
+  {
+   "titel": "GigaZuhause 250 Kabel (ab April 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-250-kabel-pib-apr-04.pdf"
+  },
+  {
+   "titel": "GigaZuhause 100 Kabel (ab April 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF-GigaMobil-XSPlus-Oktober-2023.pdf"
+  },
+  {
+   "titel": "GigaZuhause 50 Kabel (ab April 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-50-kabel-pib-apr-04.pdf"
+  },
+  {
+   "titel": "GigaZuhause 50 Kabel 12 Monate (ab April 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-50-kabel-12monate-pib-apr-04.pdf"
+  },
+  {
+   "titel": "GigaZuhause 100 Glasfaser mit Regio-Zuschlag 17,5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-100-glasfaser-regio17-5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 250 Glasfaser mit Regio-Zuschlag 17,5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-250-glasfaser-regio17-5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 500 Glasfaser mit Regio-Zuschlag 17,5 (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-500-glasfaser-regio17-5-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 500 Kabel (ab November 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-500-kabel-pib-nov-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 250 Kabel (ab November 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-250-kabel-pib-nov-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 150 Kabel (ab November 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-150-kabel-employeebenefit-pib-nov-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 100 Kabel (ab November 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-100-kabel-pib-nov-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 50 Kabel (ab November 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-50-kabel-pib-nov-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 50 Kabel 12 Monate (ab November 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-50-kabel-12monate-pib-nov-22.pdf"
+  },
+  {
+   "titel": "Red Phone 12 Monate (ab März 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/202203_PIB_Red_Phone_12_Monate.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-16-dsl-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 50 DSL Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-50-dsl-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 100 DSL Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-dsl-100-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 250 DSL Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-250-dsl-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause DSL 16 12 Monate Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-16-dsl-12-monate-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 16 DSL Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-16-dsl-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 50 DSL Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-50-dsl-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 100 DSL Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-100-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 250 DSL Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-250-dsl-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 16 DSL Bandbreite 1000 Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-16-dsl-bb1-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 16 DSL Bandbreite 1000 mit Regio-Zuschlag Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-16-dsl-bb1-regio-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL mit Regio-Zuschlag Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-16-dsl-regio-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL Bandbreite 6000 mit Regio-Zuschlag Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-16-dsl-bb6-regio-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL Bandbreite 6000 Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/12-Monatstarif-Red-S.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL Bandbreite 3000 Regio-Zuschlag Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-16-dsl-bb3-regio-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL Bandbreite 3000 Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-16-dsl-bb3-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL Bandbreite 2000 mit Regio-Zuschlag Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-16-dsl-bb2-regio-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL Bandbreite 2000 Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-16-dsl-bb2-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 250 DSL Bandbreite 175000 Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-250-dsl-bb175-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL Bandbreite 1000 Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-16-dsl-bb1-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 16 DSL mit Regio-Zuschlag Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-16-dsl-regio-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 16 DSL Bandbreite 6000 mit Regio-Zuschlag Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-16-dsl-bb6-regio-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 16 DSL Bandbreite 6000 Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-16-dsl-bb6-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 16 DSL Bandbreite 3000 mit Regio-Zuschlag Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-16-dsl-bb3-regio-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 16 DSL Bandbreite 3000 Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-16-dsl-bb3-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 16 DSL Bandbreite 2000 Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-16-dsl-bb2-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 50 DSL Bandbreite 25000 Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-50-dsl-bb25-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause Basic 250 DSL Bandbreite 175000 Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-basic-250-dsl-bb175-okt-22.pdf"
+  },
+  {
+   "titel": "GigaZuhause 16 DSL Bandbreite 1000 mit Regio-Zuschlag Festnetz (ab Oktober 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-16-dsl-bb1-regio-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 250 Cable (ab März 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/202203_PIB_Red_Internet_Phone_250_Cable.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 500 Cable inkl. Upload-Option (ab März 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_500_Cable_mit_Upload_Option.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 500 Cable (ab März 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/202203_PIB_Red_Internet_Phone_500_Cable.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 1000 Cable (ab März 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/202203_PIB_Red_Internet_Phone_1000_Cable.pdf"
+  },
+  {
+   "titel": "Vodafone CableMax 1000 (ab März 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/202203_PIB_Vodafone_CableMax_1000.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 2000 (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb2-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 2000 mit Regio-Zuschlag (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb2-regio-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 3000 (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb3-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 3000 mit Regio-Zuschlag (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb3-regio-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 6000 (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb6-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 6000 mit Regio-Zuschlag (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb6-regio-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 mit Regio-Zuschlag (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-regio-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet 250 DSL Bandbreite 175000 (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-250-bb175-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet 250 DSL (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-250-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 50 Bandbreite 25000 (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-50-bb25-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 50 (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-50-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 2000 (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb2-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 2000 mit Regio-Zuschlag (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb2-regio-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 3000 (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb3-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 3000 Regio-Zuschlag (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb3-regio-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 6000 (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb6-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 6000 mit Regio-Zuschlag (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb6-regio-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 mit Regio-Zuschlag (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-regio-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 250 DSL (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-250-bb175-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 250 DSL Bandbreite 175000 (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-250-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 50 Bandbreite 25000 (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-50-bb25-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 50 (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-50-jan-22.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 12 Monate (ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-12-monate-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 1000 (ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb1-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 100 (ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-100-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 1000 (ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb1-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 1000 mit Regio-Zuschlag (ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb1-regio-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 100 (ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-100-nov-21.pdf"
+  },
+  {
+   "titel": "Phone-Flat DSL (ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-phone-dsl-nov-21.pdf"
+  },
+  {
+   "titel": "Phone-Flat DSL mit Regio-Zuschlag (ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-phone-dsl-regio-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 12 Monate (ab Januar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-12-monate-jan-22.pdf"
+  },
+  {
+   "titel": "Vodafone CableMax 1000 (ab Februar 2022)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/PIB_Vodafone_CableMax_1000_2022_Feb.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 1000 Cable (ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Cable-1000-Nov-2021.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 500 Cable (ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Cable-500-Nov-2021.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 250 Cable (ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Cable-250-Nov-2021.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 100 Cable (ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Cable-100-Nov-2021.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 50 Cable (ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Cable-50-Nov-2021.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 50 Cable 12 Monate (ab Dezember 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-cable-50-12-monate-nov-2021.pdf"
+  },
+  {
+   "titel": "Red Phone (ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Phone-Nov-2021.pdf"
+  },
+  {
+   "titel": "Red Phone 12 Monate (ab Dezember 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-phone-12-monate-nov-2021.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 6000 (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb6-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 6000 mit Regio-Zuschlag (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb6-regio-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 2000 (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb2-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 3000 mit Regio-Zuschlag (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb3-regio-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 mit Regio-Zuschlag (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-regio-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 6000 + TV (Ab Oktober 2016)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-16-BB6_TV_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet 250 DSL Bandbreite 175000 (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-250-bb175-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet 250 DSL (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-250-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 50 Bandbreite 25000 (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-50-bb25-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 50 (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-50-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 2000 (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb2-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 2000 mit Regio-Zuschlag (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb2-regio-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 3000 (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb3-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 3000 Regio-Zuschlag (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb3-regio-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 6000 (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb6-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 6000 mit Regio-Zuschlag (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb6-regio-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 mit Regio-Zuschlag (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-regio-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 250 DSL (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-250-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 250 DSL Bandbreite 175000 (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-250-bb175-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 50 Bandbreite 25000 (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-50-bb25-nov-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 50 (Ab November 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-50-nov-21.pdf"
+  },
+  {
+   "titel": "Internet 10 -12 Monate (ab Februar 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Internet-10-Monate-12-Feb-2019.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 50 Cable TKG (ab Mai 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red_Internet_Phone_50_Cable_TKG_2020_20210207.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 250 Bandbreite 175000 (Ab August 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-250-bb175-aug-18.pdf.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 50 Glasfaser Regio-Zuschlag 17,5 (ab November 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Glasfaser-50-Regio17-5-Nov-20.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 50 Glasfaser Basistarif (ab November 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-glasfaser-50-basistarif-nov-18.pdf"
+  },
+  {
+   "titel": "Red Internet Glasfaser 50 mit Regio-Zuschlag 5 (ab April 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-Glasfaser-50-Regio5-Apr-18.pdf"
+  },
+  {
+   "titel": "Red Internet Glasfaser 50 mit Regio-Zuschlag 5 für 12 Monate (ab April 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-Glasfaser-50-Regio512-Apr-18.pdf"
+  },
+  {
+   "titel": "Red Internet 50 Glasfaser Regio - Zuschlag 10 (ab Oktober 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-glasfaser-50-regio10-okt-18.pdf.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 50 Glasfaser Regio - Zuschlag 10 (ab Oktober 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-glasfaser-50-regio10-okt-18.pdf.pdf"
+  },
+  {
+   "titel": "Red Internet 100 Glasfaser Regio-Zuschlag 17,5 (ab November 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-Glasfaser-100-Regio17-5-Nov-20.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 100 Glasfaser Regio-Zuschlag 17,5 (ab November 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Glasfaser-100-Regio17-5-Nov-20.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 100 Glasfaser Basistarif (ab November 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-glasfaser-100-basistarif-nov-18.pdf"
+  },
+  {
+   "titel": "Red Internet Glasfaser 100 mit Regio-Zuschlag 5 (ab April 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-Glasfaser-100-Regio5-Apr-18.pdf"
+  },
+  {
+   "titel": "Red Internet Glasfaser 100 mit Regio-Zuschlag 10 (ab Oktober 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-Glasfaser-100-Regio10-Okt-18.pdf"
+  },
+  {
+   "titel": "Red Internet 250 Glasfaser Regio-Zuschlag 17,5 (ab November 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-Glasfaser-250-Regio17-5-Nov-20.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 250 Glasfaser Regio-Zuschlag 17,5 (ab November 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Glasfaser-250-Regio17-5-Nov-20.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 250 Glasfaser Basistarif (ab November 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-glasfaser-250-basistarif-nov-18.pdf"
+  },
+  {
+   "titel": "GigaZuhause CableMax 1000 (ab Juni 2023)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-Glasfaser-250-Regio5-Apr-18.pdf"
+  },
+  {
+   "titel": "Red Internet Glasfaser 250 mit Regio-Zuschlag 10 (ab Oktober 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-Glasfaser-250-Regio10-Okt-18.pdf"
+  },
+  {
+   "titel": "Red Internet 500 Glasfaser Regio-Zuschlag 17,5 (ab November 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-Glasfaser-500-Regio17-5-Nov-20.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 500 Glasfaser Basistarif (ab November 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-glasfaser-500-basistarif-nov-18.pdf"
+  },
+  {
+   "titel": "Red Internet Glasfaser 500 mit Regio-Zuschlag 5 (ab April 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-Glasfaser-500-Regio5-Apr-18.pdf"
+  },
+  {
+   "titel": "Red Internet Glasfaser 500 mit Regio-Zuschlag 10 (ab Oktober 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-Glasfaser-500-Regio10-Okt-18.pdf"
+  },
+  {
+   "titel": "Red Internet 750 Glasfaser Regio-Zuschlag 17,5 (ab November 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-Glasfaser-750-Regio17-5-Nov-20.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 750 Glasfaser Regio-Zuschlag 17,5 (ab November 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Glasfaser-750-Regio17-5-Nov-20.pdf"
+  },
+  {
+   "titel": "Red Internet Glasfaser 750 mit Regio-Zuschlag 5 (ab April 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-Glasfaser-750-Regio5-Apr-18.pdf"
+  },
+  {
+   "titel": "Red Internet Glasfaser 750 mit Regio-Zuschlag 10 (ab Oktober 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-Glasfaser-750-Regio10-Okt-18.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 1000 Glasfaser Regio-Zuschlag 17,5 (ab November 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Glasfaser-1000-Regio17-5-Nov-20.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 1000 Glasfaser Basistarif (ab November 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-glasfaser-1000-basistarif-nov-18.pdf"
+  },
+  {
+   "titel": "Red Internet Glasfaser 1000 mit Regio-Zuschlag 5 (ab April 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-Glasfaser-1000-Regio5-Apr-18.pdf"
+  },
+  {
+   "titel": "Red Internet Glasfaser 1000 mit Regio-Zuschlag 10 (ab Oktober 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-Glasfaser-1000-Regio10-Okt-18.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 50 Glasfaser mit Regio-Zuschlag 5 (ab April 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Glasfaser-50-Regio5-Apr-18.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 100 Glasfaser mit Regio-Zuschlag 5 (ab April 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Glasfaser-100-Regio5-Apr-18.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 100 Glasfaser mit Regio-Zuschlag 10 (ab Oktober 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Glasfaser-100-Regio10-Okt-18.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 250 Glasfaser mit Regio-Zuschlag 5 (ab April 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Glasfaser-250-Regio5-Apr-18.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 250 Glasfaser mit Regio-Zuschlag 10 (ab Oktober 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Glasfaser-250-Regio10-Okt-18.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 500 Glasfaser mit Regio-Zuschlag 5 (ab April 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Glasfaser-500-Regio5-Apr-18.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 500 Glasfaser mit Regio-Zuschlag 10 (ab Oktober 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Glasfaser-500-Regio10-Okt-18.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 750 Glasfaser mit Regio-Zuschlag 5 (ab April 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Glasfaser-750-Regio5-Apr-18.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 750 Glasfaser mit Regio-Zuschlag 10 (ab Oktober 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Glasfaser-750-Regio10-Okt-18.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 1000 Glasfaser mit Regio-Zuschlag 5 (ab Oktober 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Glasfaser-1000-Regio5-Apr-18.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 1000 Glasfaser mit Regio-Zuschlag 10 (ab Oktober 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Glasfaser-1000-Regio10-Okt-18.pdf"
+  },
+  {
+   "titel": "Vodafone Cable Max 1000 (Ab August 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/vodafone-cablemax-1000-2021.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 1000 Cable (Ab April 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red_Internet_Phone_1000_Cable_2020_20210207.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 500 Cable (Ab April 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red_Internet_Phone_500_Cable_2020_20210207.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 250 Cable (Ab April 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red_Internet_Phone_250_Cable_20210207.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 100 Cable (Ab Mai 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red_Internet_Phone_100_Cable_2020_20210207.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 50 Cable (Ab April 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red_Internet_Phone_50_Cable_2020_20210207.pdf"
+  },
+  {
+   "titel": "Red Phone (Ab Oktober 2016)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red_Phone_20210207.pdf"
+  },
+  {
+   "titel": "Red Phone DSL (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-phone-dsl-okt-21.pdf"
+  },
+  {
+   "titel": "Red Phone DSL mit Regio-Zuschlag (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-phone-dsl-regio-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 mit Regio-Zuschlag (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-regio-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 1000 mit Regio-Zuschlag (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb1-regio-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 2000 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb2-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 1000 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb1-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 2000 mit Regio-Zuschlag (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb2-regio-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 3000 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb3-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 3000 mit Regio-Zuschlag (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb3-regio-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 6000 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb6-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 6000 mit Regio-Zuschlag (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb6-regio-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 50 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-50-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 50 Bandbreite 25000 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-50-bb25-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 100 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-100-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 250 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-250-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 250 Bandbreite 175000 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-250-bb175-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 mit Regio-Zuschlag (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-regio-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 1000 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb1-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 1000 mit Regio-Zuschlag (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb1-regio-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 2000 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb2-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 2000 mit Regio-Zuschlag (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb3-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 3000 mit Regio-Zuschlag (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb3-regio-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 6000 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb6-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 6000 mit Regio-Zuschlag (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-16-bb6-regio-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 50 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-50-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 50 Bandbreite 25000 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-50-bb25-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 100 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-100-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 250 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-250-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 250 Breitband 175000 (Ab Oktober 2021)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-dsl-250-bb175-okt-21.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 + TV (Ab Oktober 2016)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-16_TV_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 mit Regio-Zuschlag + TV (Ab Oktober 2016)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-16_Regio_TV_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 6000 + TV (Ab Oktober 2016)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-16-BB6_TV_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 6000 mit Regio-Zuschlag + TV (Ab Oktober 2016)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-16-BB6_Regio_TV_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-DSL-16-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 50 + TV (Ab Oktober 2016)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-50_TV_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 50 Bandbreite 25000 + TV (Ab Oktober 2016)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-50-BB25_TV_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 100 + TV (Ab Oktober 2016)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-100_TV_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 250 (Ab August 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-DSL-250-Aug-18.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 250 DSL Bandbreite 175000 + TV (Ab August 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-DSL-250-BB175-TV-Aug-18.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 250 DSL + TV (Ab August 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-DSL-250-TV-Aug-18.pdf"
+  },
+  {
+   "titel": "Red Phone DSL (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Phone-DSL-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Phone DSL mit Regio-Zuschlag (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Phone-DSL-Regio-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 12 Monate (Ab Januar 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-DSL-16-12M-Jan-19.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Regio (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-DSL-16-Regio-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 1000 mit Regio-Zuschlag (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-DSL-16-BB1-Regio-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 1000 (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-DSL-16-BB1-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 2000 mit Regio-Zuschlag (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-internet-dsl-16-bb2-regio-sep-19.pdf.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 2000 (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-DSL-16-BB2-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 3000 (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-DSL-16-BB3-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 3000 mit Regio-Zuschlag (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-DSL-16-BB3-Regio-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 6000 (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-DSL-16-BB6-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 6000 mit Regio-Zuschlag (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-DSL-16-BB6-Regio-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 50 (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-DSL-50-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 50 Bandbreite 25000 (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-DSL-50-BB25-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 100 (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-DSL-100-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 250 (Ab August 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-DSL-250-Aug-18.pdf"
+  },
+  {
+   "titel": "Red Internet 250 DSL Bandbreite 175000 + TV (Ab August 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Internet-DSL-250-BB175-TV-Aug-18.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 6000 mit Regio-Zuschlag (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-DSL-16-BB6-Regio-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 3000 (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-DSL-16-BB3-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 3000 mit Regio-Zuschlag (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-DSL-16-BB3-Regio-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 2000 (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-DSL-16-BB2-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 1000 (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-DSL-16-BB1-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 1000 mit Regio-Zuschlag (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-DSL-16-BB1-Regio-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-DSL-16-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 mit Regio-Zuschlag (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-DSL-16-Regio-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 50 Bandbreite 25000 (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-DSL-50-BB25-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 50 (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-DSL-50-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 100 (Ab September 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-DSL-100-Sep-19.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 250 DSL Bandbreite 175000 (Ab August 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-DSL-250-BB175-Aug-18.pdf"
+  },
+  {
+   "titel": "Vodafone CableMax 500 (ab September 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Vodafone_CableMax_500_Sep_2020.pdf"
+  },
+  {
+   "titel": "Vodafone CableMax 1000 (ab September 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Vodafone_CableMax_1000_Sep_2020.pdf"
+  },
+  {
+   "titel": "CableMax 500 (ab Februar 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/CableMax-500-Feb-2020.pdf"
+  },
+  {
+   "titel": "CableMax 1000 (ab Februar 2020)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/CableMax-1000-Feb-2020.pdf"
+  },
+  {
+   "titel": "Red Internet 25 Cable",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-I-Cable-25-Feb-2018.pdf"
+  },
+  {
+   "titel": "Red Internet 25 Cable",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-I_Cable-25_Apr-2017.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 50 Cable",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Cable-50-Okt-2018.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 100 Cable (ab Dezember 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-100-cable-dez-2019.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 200 Cable (ab Februar 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Cable-200-Feb-2018.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 400 Cable (ab Februar 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Cable-400-Feb-2018.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 500 Cable (ab Februar 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Cable-500-Feb-2018.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 1000 Cable (ab September 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Cable-1000-Sep-2018.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 100 Young Cable (ab Dezember 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-100-young-cable-dez-2019.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone Young 200 Cable",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-200-Young-Cable-Feb-2018.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone Young 400 Cable",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-400-Young-Cable-Feb-2018.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone Young 500 Cable",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Young-IundP-500-Cable-Sept-18.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone Young 1000 Cable AKTION",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Young-IundP-1000-Cable-Sept-19.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone Young 100 Cable inkl. Upload Option 50",
+   "url": "https://www.vodafone.de/media/downloads/pdf/gigazuhause-1000-kabel-pib-apr-04.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone Young 400 Cable inkl. Upload Option 50",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-Young-IundP-500-Cable-UploadOption50-Jun-2018.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 50 Cable TKG",
+   "url": "https://www.vodafone.de/media/downloads/pdf/red-iundp-cable-50-tkg-maerz19.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 32 Cable TKG (ab Februar 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Cable-32-TKG-Feb-2018.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 16 Cable (ab Juli 2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Cable-16-Jul-19.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 16 Cable (ab Oktober 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Cable-16-Okt-2018.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 100 Young Cable",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red_IundP_100_Young_Cable_20170802.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone Young 100 Cable",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-100-Young-Cable-Feb-2018.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 200 Young Cable",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red_IundP_200_Young_Cable_20170802.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 400 Young Cable",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red_IundP_400_Young_Cable_20170802.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 10 Cable (ab Februar 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Cable-10-Feb-2018.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 32 Cable",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP_Cable-32_Apr-2017.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 32 Cable (ab Februar 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Cable-32-Feb-2018.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 32 Cable TKG",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP_Cable-32_TKG_Apr-2017.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 100 Cable",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP_Cable-100_Apr-2017.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 100 Cable (ab Februar 2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP-Cable-100-Feb-2018.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 200 Cable",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP_Cable-200_Apr-2017.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 400 Cable",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP_Cable-400_Apr-2017.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 100 + 100 Cable",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP_100plus100-Cable_Sep-2017.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 200 + 200 Cable",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP_200plus200-Cable_Sep-2017.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone 10 Cable",
+   "url": "https://www.vodafone.de/media/downloads/pdf/Red-IundP_Cable-10_Apr-2017.pdf"
+  },
+  {
+   "titel": "Phone-Flat DSL",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-Phone_DSL_Okt-16.pdf"
+  },
+  {
+   "titel": "Phone-Flat DSL mit Regio-Zuschlag",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-Phone_DSL_Regio_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-16_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 mit Regio-Zuschlag",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-16_Regio_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 1000",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-16-BB1_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 1000 mit Regio-Zuschlag",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-16-BB1_Regio_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 2000",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-16-BB2_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 2000 mit Regio-Zuschlag",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-16-BB2_Regio_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 3000",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-16-BB3_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 6000",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-16-BB6_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 16 Bandbreite 6000 mit Regio-Zuschlag",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-16-BB6_Regio_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 50 Bandbreite 25000",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-50-BB25_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 50",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-50_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet DSL 100",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-I_DSL-100_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 1000",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-16-BB1_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 1000 mit Regio-Zuschlag",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-16-BB1_Regio_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 2000",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-16-BB2_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 2000 mit Regio-Zuschlag",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-16-BB2_Regio_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 3000",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-16-BB3_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 6000",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-16-BB6_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 Bandbreite 6000 mit Regio-Zuschlag",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-16-BB6_Regio.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 50 Bandbreite 25000",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-50-BB25_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16 mit Regio-Zuschlag",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-16_Regio_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 16",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-16_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 50",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-50_Okt-16.pdf"
+  },
+  {
+   "titel": "Red Internet & Phone DSL 100",
+   "url": "https://www.vodafone.de/media/downloads/pdf/VF_Red-IundP_DSL-100_Okt-16.pdf"
+  },
+  {
+   "titel": "3play START 30",
+   "url": "https://www.vodafone.de/media/downloads/pdf/3playStart30.pdf"
+  },
+  {
+   "titel": "3play START 60",
+   "url": "https://www.vodafone.de/media/downloads/pdf/3play-Start-60.pdf"
+  },
+  {
+   "titel": "3play Jump 120",
+   "url": "https://www.vodafone.de/media/downloads/pdf/3play-Jump-120.pdf"
+  },
+  {
+   "titel": "3play COMFORT 120",
+   "url": "https://www.vodafone.de/media/downloads/pdf/3play-Comfort-120.pdf"
+  },
+  {
+   "titel": "3play JUMP 150",
+   "url": "https://www.vodafone.de/media/downloads/pdf/3playJump150.pdf"
+  },
+  {
+   "titel": "3play FLY 400 (bis zum 05.11.2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/3play-Fly-400.pdf"
+  },
+  {
+   "titel": "3play FLY 400",
+   "url": "https://www.vodafone.de/media/downloads/pdf/3playFly400.pdf"
+  },
+  {
+   "titel": "3play FLY 1000 (bis 02.11.2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/3playFly1000-021119.pdf"
+  },
+  {
+   "titel": "3play FLY 1000",
+   "url": "https://www.vodafone.de/media/downloads/pdf/3playFly1000.pdf"
+  },
+  {
+   "titel": "2play START 20",
+   "url": "https://www.vodafone.de/media/downloads/pdf/2play-Start-20.pdf"
+  },
+  {
+   "titel": "2play BASIC 30",
+   "url": "https://www.vodafone.de/media/downloads/pdf/2playBasic30-Feb-2019.pdf"
+  },
+  {
+   "titel": "2play START 30",
+   "url": "https://www.vodafone.de/media/downloads/pdf/2play-Start-30.pdf"
+  },
+  {
+   "titel": "2play JUMP 120",
+   "url": "https://www.vodafone.de/media/downloads/pdf/2play-Jump-120.pdf"
+  },
+  {
+   "titel": "2play COMFORT 150",
+   "url": "https://www.vodafone.de/media/downloads/pdf/2play-Comfort-120.pdf"
+  },
+  {
+   "titel": "2play FLY 400 (bis 06.05.2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/2playFly400-032018.pdf"
+  },
+  {
+   "titel": "2play FLY 400 (bis 05.11.2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/2playFly400-052018.pdf"
+  },
+  {
+   "titel": "2play JUMP 150 (bis 06.05.2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/2playJump150-112017.pdf"
+  },
+  {
+   "titel": "2play JUMP (bis 05.11.2018)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/2playJump150-052018.pdf"
+  },
+  {
+   "titel": "2play JUMP 150",
+   "url": "https://www.vodafone.de/media/downloads/pdf/2playJump150.pdf"
+  },
+  {
+   "titel": "2play FLY 400",
+   "url": "https://www.vodafone.de/media/downloads/pdf/2playFly400.pdf"
+  },
+  {
+   "titel": "2play FLY1000 (bis 02.11.2019)",
+   "url": "https://www.vodafone.de/media/downloads/pdf/2playFly1000-021119.pdf"
+  },
+  {
+   "titel": "2play FLY 1000",
+   "url": "https://www.vodafone.de/media/downloads/pdf/2playFly1000.pdf"
+  }
+ ]
+}

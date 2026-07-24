@@ -108,3 +108,103 @@ test("Vorschlag bei 85 Mbit/s bietet Telekom-100 als L UND M an (M-Kunde nicht a
 test("tarifKlassen für unbekannten Anbieter → leer", () => {
   assert.deepEqual(tarifKlassen(daten, "GibtEsNicht"), []);
 });
+
+// --- Neue Anbieter: die Tabelle deckt jetzt sechs Netze ab ----------------
+
+test("alle sechs Festnetz-Anbieter haben Tarife", () => {
+  for (const anbieter of ["Telekom", "Vodafone", "o2", "1&1", "PŸUR", "Deutsche Glasfaser"]) {
+    const k = tarifKlassen(daten, anbieter);
+    assert.ok(k.length > 0, `${anbieter} hat keine Tarife`);
+  }
+});
+
+test("Anbieter-Namen entsprechen exakt der kanonischen Liste", async () => {
+  // Nur bei Buchstabengleichheit findet der Ergebnis-Screen zum erkannten
+  // Anbieter auch die Tarife — sonst erschiene "noch nicht hinterlegt".
+  const { FESTNETZ_ANBIETER } = await import("../netz/anbieter.ts");
+  const bekannt = new Set(FESTNETZ_ANBIETER);
+  for (const t of daten.tarife) {
+    assert.ok(bekannt.has(t.anbieter), `unbekannter Anbieter-Name: "${t.anbieter}"`);
+  }
+});
+
+test("kein Tarif ohne Geschwindigkeit, keine unlogische Reihenfolge", () => {
+  for (const t of daten.tarife) {
+    assert.ok(t.download_max_mbps > 0, `${t.slug}: bis-zu-Rate 0`);
+    if (t.download_normal_mbps != null) {
+      assert.ok(t.download_normal_mbps <= t.download_max_mbps, `${t.slug}: normal > max`);
+    }
+    if (t.download_min_mbps != null && t.download_normal_mbps != null) {
+      assert.ok(t.download_min_mbps <= t.download_normal_mbps, `${t.slug}: min > normal`);
+    }
+  }
+});
+
+test("Bezeichner sind eindeutig — sie sind der Listen-Schlüssel der Auswahl", () => {
+  const slugs = daten.tarife.map((t) => t.slug);
+  assert.equal(new Set(slugs).size, slugs.length);
+});
+
+// --- Auswahl bleibt unterscheidbar ----------------------------------------
+
+// So beschriftet die Oberfläche einen Auswahl-Knopf.
+function knopfText(v) {
+  const zeig = (n) => (n >= 100 ? Math.round(n).toString() : n.toFixed(1));
+  return (
+    `${v.tarif.tarifname} · bis zu ${zeig(v.tarif.download_max_mbps)}` +
+    (v.unterscheidung?.normalMbps != null ? `, normal ${zeig(v.unterscheidung.normalMbps)}` : "") +
+    (v.unterscheidung?.minMbps != null ? `, min ${zeig(v.unterscheidung.minMbps)}` : "")
+  );
+}
+
+test("keine zwei Auswahl-Knöpfe sehen gleich aus", () => {
+  // Sonst könnte der Nutzer nur raten, welcher Knopf sein Vertrag ist —
+  // und die beiden führen zu verschiedenen Urteilen.
+  for (const anbieter of ["Telekom", "Vodafone", "o2", "1&1", "PŸUR", "Deutsche Glasfaser"]) {
+    const texte = tarifKlassen(daten, anbieter).map(knopfText);
+    assert.equal(new Set(texte).size, texte.length, `${anbieter}: doppelte Beschriftung`);
+  }
+});
+
+test("auch die Vorschlagsliste bleibt über alle Messwerte eindeutig", () => {
+  for (const anbieter of ["Telekom", "Vodafone", "o2", "1&1", "PŸUR", "Deutsche Glasfaser"]) {
+    for (const gemessen of [3, 8, 16, 22, 40, 56, 95, 180, 240, 480, 900]) {
+      const texte = tarifVorschlaege(daten, anbieter, gemessen).map(knopfText);
+      assert.equal(new Set(texte).size, texte.length, `${anbieter} @ ${gemessen}`);
+    }
+  }
+});
+
+test("Unterscheidung steht nur da, wo sie gebraucht wird", () => {
+  // Bei der Telekom ist jeder Knopf schon durch Name + bis-zu eindeutig.
+  const k = tarifKlassen(daten, "Telekom");
+  assert.ok(k.some((v) => v.unterscheidung === undefined));
+});
+
+test("Werte, die sich erst hinter der Anzeige unterscheiden, gelten als ein Tarif", () => {
+  // 0,77 und 0,768 stehen beide als "0.8" auf dem Schirm und ergeben
+  // dasselbe Urteil — zwei Knöpfe daraus wären für niemanden trennbar.
+  const mini = {
+    stand: "2026-07-24",
+    quelle: "Test",
+    tarife: [0.77, 0.768].map((min, i) => ({
+      anbieter: "Test",
+      slug: `t${i}`,
+      tarifname: "Test 16",
+      zugang: null,
+      technologie: "dsl",
+      download_max_mbps: 16,
+      download_normal_mbps: 9.5,
+      download_min_mbps: min,
+      upload_max_mbps: 2,
+      upload_normal_mbps: 1,
+      upload_min_mbps: 0.1,
+      monatspreis_eur: 20,
+      quelle_url: "https://example.invalid/pib.pdf",
+      versionsstand: "2026-01-01",
+    })),
+  };
+  const k = tarifKlassen(mini, "Test");
+  assert.equal(k.length, 1);
+  assert.equal(k[0].varianten, 2);
+});

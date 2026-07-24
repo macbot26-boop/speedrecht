@@ -15,6 +15,7 @@ import {
 import type { ConnectionType, IasCompletedKpis } from "@/lib/ias/types";
 import { ANBIETER_SONSTIGE, FESTNETZ_ANBIETER } from "@/lib/netz/anbieter";
 import tarifDaten from "@/lib/tarife/tarife.generated.json";
+import { formatMbps } from "@/lib/tarife/anzeige.ts";
 import {
   tarifKlassen,
   tarifVorschlaege,
@@ -82,10 +83,8 @@ function zellularErkannt(): boolean {
   return browserVerbindung()?.type === "cellular";
 }
 
-function formatMbps(value: number | null): string {
-  if (value === null) return "–";
-  return value >= 100 ? Math.round(value).toString() : value.toFixed(1);
-}
+// Anzeige-Genauigkeit kommt aus @/lib/tarife/anzeige — dieselbe Quelle, auf
+// der Urteil und Tarif-Bündelung rechnen.
 
 export function MessungFlow() {
   const { phase, rttMs, downloadMbps, uploadMbps, result, error, start } =
@@ -721,6 +720,12 @@ function TarifClaim({
               {v.tarif.tarifname}
               <span className="ml-1 text-zinc-400">
                 · bis zu {formatMbps(v.tarif.download_max_mbps)}
+                {/* Nur wo zwei Knöpfe sonst gleich aussähen: die Werte, die
+                    sie wirklich unterscheiden. */}
+                {v.unterscheidung?.normalMbps != null &&
+                  `, normal ${formatMbps(v.unterscheidung.normalMbps)}`}
+                {v.unterscheidung?.minMbps != null &&
+                  `, min ${formatMbps(v.unterscheidung.minMbps)}`}
               </span>
             </button>
           ))}
