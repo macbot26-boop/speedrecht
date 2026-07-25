@@ -1,6 +1,6 @@
 // Liest die Angaben einer Rechnung aus Bild oder PDF.
 //
-// Zwei Regeln bestimmen den Zuschnitt:
+// Drei Regeln bestimmen den Zuschnitt:
 //
 // 1. Es werden NUR Angaben abgefragt, die als Text auf dem Dokument stehen.
 //    Vor allem gibt es KEIN Feld für Geschwindigkeiten. Was der Vertrag
@@ -9,7 +9,15 @@
 //    ein Modell soll die Zahl, an der ein Rechtsanspruch hängt, gar nicht
 //    erst nennen können.
 //
-// 2. Der Dateiinhalt ist DATEN, nie Anweisung. Das steht so im System-Prompt,
+// 2. Gefragt wird nur, was diese Phase auch braucht. Name und Anschrift des
+//    Anschlussinhabers stehen auf jeder Rechnung, werden hier aber bewusst
+//    NICHT abgefragt: Für die Tarifbestimmung genügen Anbieter und
+//    Vertragsname. Erst der Kulanz-Brief (Phase 5) braucht die Anschrift —
+//    dann wird die Einwilligung dort eingeholt, wo der Zweck entsteht und
+//    dem Nutzer einleuchtet. Ein Feld, das es nicht gibt, kann auch nicht
+//    versehentlich übertragen werden.
+//
+// 3. Der Dateiinhalt ist DATEN, nie Anweisung. Das steht so im System-Prompt,
 //    und es ist zusätzlich baulich abgesichert: Es gibt keine Werkzeuge, das
 //    Antwortformat ist auf ein festes Formular festgenagelt, und jedes Feld
 //    wird danach geprüft. Ein Angreifer, der Text auf sein Bild schreibt, kann
@@ -55,18 +63,8 @@ const SCHEMA = {
       anyOf: [{ type: "number" }, { type: "null" }],
       description: "Monatlicher Betrag für den Anschluss in Euro.",
     },
-    name: textOderNull("Name des Anschlussinhabers, wie im Adressfeld gedruckt."),
-    anschrift: textOderNull("Anschrift des Anschlussinhabers, einzeilig."),
   },
-  required: [
-    "ist_rechnung",
-    "anbieter",
-    "tarifname",
-    "kundennummer",
-    "monatspreis_eur",
-    "name",
-    "anschrift",
-  ],
+  required: ["ist_rechnung", "anbieter", "tarifname", "kundennummer", "monatspreis_eur"],
   additionalProperties: false,
 } as const;
 

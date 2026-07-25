@@ -9,7 +9,12 @@
 // scheitern lässt. Ein fehlendes Feld kostet einen Handgriff, ein falsches
 // Feld kostet Vertrauen.
 
-/** Was auf der Rechnung stand — geprüft, gekürzt, einzeilig. */
+/**
+ * Was auf der Rechnung stand — geprüft, gekürzt, einzeilig.
+ *
+ * Name und Anschrift des Anschlussinhabers fehlen hier bewusst; siehe die
+ * Begründung im Kopf von extraktion.ts.
+ */
 export interface RechnungsAngaben {
   /** Sieht das Dokument überhaupt nach einer Telekommunikations-Rechnung aus? */
   istRechnung: boolean;
@@ -17,8 +22,6 @@ export interface RechnungsAngaben {
   tarifname: string | null;
   kundennummer: string | null;
   monatspreisEur: number | null;
-  name: string | null;
-  anschrift: string | null;
 }
 
 /**
@@ -32,8 +35,6 @@ export const MAX_LAENGE = {
   anbieter: 80,
   tarifname: 120,
   kundennummer: 40,
-  name: 120,
-  anschrift: 200,
 } as const;
 
 const MAX_MONATSPREIS_EUR = 1000;
@@ -45,8 +46,6 @@ export const KEINE_ANGABEN: RechnungsAngaben = {
   tarifname: null,
   kundennummer: null,
   monatspreisEur: null,
-  name: null,
-  anschrift: null,
 };
 
 export function alsText(wert: unknown, maxLaenge: number): string | null {
@@ -78,7 +77,5 @@ export function angabenPruefen(roh: unknown): RechnungsAngaben {
     tarifname: alsText(o.tarifname, MAX_LAENGE.tarifname),
     kundennummer: alsText(o.kundennummer, MAX_LAENGE.kundennummer),
     monatspreisEur: alsBetrag(o.monatspreis_eur),
-    name: alsText(o.name, MAX_LAENGE.name),
-    anschrift: alsText(o.anschrift, MAX_LAENGE.anschrift),
   };
 }

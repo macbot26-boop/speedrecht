@@ -4,11 +4,12 @@
 // Datenschutz: Die Datei wird NICHT gespeichert. Sie lebt für die Dauer dieser
 // einen Anfrage im Arbeitsspeicher, geht einmal an Claude und wird danach
 // fallen gelassen — kein Schreibvorgang, kein Zwischenspeicher, keine
-// Datenbank. Auch die ausgelesenen Angaben (Name, Anschrift, Kundennummer)
-// werden nirgends abgelegt, sondern nur an den Browser zurückgegeben, der sie
-// angefragt hat. Es wird bewusst NICHTS aus dieser Anfrage protokolliert, auch
-// keine Fehlermeldungen der Bibliothek — die können Teile der Anfrage
-// enthalten, und in der Anfrage steckt die Rechnung.
+// Datenbank. Auch die ausgelesenen Angaben werden nirgends abgelegt, sondern
+// nur an den Browser zurückgegeben, der sie angefragt hat. Nach Name und
+// Anschrift wird gar nicht erst gefragt (Begründung im Kopf von
+// rechnung/extraktion.ts). Es wird bewusst NICHTS aus dieser Anfrage
+// protokolliert, auch keine Fehlermeldungen der Bibliothek — die können Teile
+// der Anfrage enthalten, und in der Anfrage steckt die Rechnung.
 //
 // Sicherheitsmodell: Weder der Client noch der Bildinhalt sind
 // vertrauenswürdig. Vier Ebenen, von billig nach teuer geordnet, damit
@@ -138,7 +139,5 @@ export async function POST(request: Request) {
     // ausdrücklich NICHT zur Tarifbestimmung benutzt (siehe rechnung-abgleich).
     kundennummer: angaben.kundennummer,
     monatspreisEur: angaben.monatspreisEur,
-    name: angaben.name,
-    anschrift: angaben.anschrift,
   });
 }
