@@ -10,7 +10,17 @@ import { ipParsen } from "./netz/erkennung";
 
 const MAX_EINTRAEGE = 10_000;
 
-export function ratenBegrenzer(proMinute: number): (key: string) => boolean {
+/**
+ * Baut eine Bremse: höchstens `anzahl` Anfragen je `fensterMs`.
+ *
+ * Das Fenster ist einstellbar, weil nicht jede Anfrage gleich viel kostet.
+ * Eine Messung ist kostenlos und darf im Minutentakt kommen; ein
+ * Rechnungs-Scan kostet echtes Geld und wird deshalb über Stunden gebremst.
+ */
+export function ratenBegrenzer(
+  anzahl: number,
+  fensterMs = 60_000
+): (key: string) => boolean {
   const buckets = new Map<string, { count: number; resetAt: number }>();
 
   return function begrenzt(key: string): boolean {
@@ -29,11 +39,11 @@ export function ratenBegrenzer(proMinute: number): (key: string) => boolean {
           buckets.delete(k);
         }
       }
-      buckets.set(key, { count: 1, resetAt: now + 60_000 });
+      buckets.set(key, { count: 1, resetAt: now + fensterMs });
       return false;
     }
     bucket.count += 1;
-    return bucket.count > proMinute;
+    return bucket.count > anzahl;
   };
 }
 
