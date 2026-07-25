@@ -230,11 +230,17 @@ function ueblichKriterium(
   anteilNormal: number | null,
   messungen: number
 ): Kriterium {
-  if (normal === null || anteilNormal === null) {
+  // NUR der fehlende Wert im Blatt ist "kein_referenzwert". Das früher hier
+  // mitgeprüfte `anteilNormal === null` bedeutet etwas ganz anderes — nämlich
+  // "noch keine Messung" — und hätte bei einer leeren Messreihe behauptet, das
+  // Blatt nenne keine normale Rate, obwohl es sie nennt.
+  if (normal === null) {
     return { name: "ueblich", stand: "kein_referenzwert", referenzMbps: null, nochNoetig: null };
   }
   const referenzMbps = aufAnzeige(normal);
-  if (messungen < MINDEST_MESSUNGEN_UEBLICH) {
+  // `anteilNormal === null` kann hier nur noch heißen: null Messungen. Das ist
+  // derselbe Fall wie "zu wenige" und wird mit ihm zusammen behandelt.
+  if (messungen < MINDEST_MESSUNGEN_UEBLICH || anteilNormal === null) {
     return {
       name: "ueblich",
       stand: "zu_wenig_daten",

@@ -8,7 +8,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { vorpruefung } from "./kriterien.ts";
+import { MINDEST_MESSUNGEN_UEBLICH, vorpruefung } from "./kriterien.ts";
 import { tarifUrteil } from "./urteil.ts";
 
 const daten = JSON.parse(
@@ -220,6 +220,17 @@ test("leere Messreihe stürzt nicht ab und urteilt nicht", () => {
   assert.equal(e.kennzahlen.messungen, 0);
   assert.equal(e.kennzahlen.messtage, 0);
   assert.equal(e.kennzahlen.anteilNormal, null);
+});
+
+test("ohne Messung heißt es 'zu wenig Daten', nicht 'kein Referenzwert'", () => {
+  // Die beiden Stände bedeuten Verschiedenes: "kein_referenzwert" ist eine
+  // Aussage über das Produktinformationsblatt, "zu_wenig_daten" eine über die
+  // Messreihe. Wer sie vermischt, behauptet, das Blatt nenne keine normale
+  // Rate — und in der Anzeige fehlt dann die Zahl, gegen die geprüft wird.
+  const e = vorpruefung(magentaL, []);
+  for (const k of e.kriterien) assert.equal(k.stand, "zu_wenig_daten", k.name);
+  assert.equal(kriterium(e, "ueblich").referenzMbps, 83.8);
+  assert.equal(kriterium(e, "ueblich").nochNoetig, MINDEST_MESSUNGEN_UEBLICH);
 });
 
 // --- Rundung: Kriterien und Urteil dürfen sich nicht widersprechen --------

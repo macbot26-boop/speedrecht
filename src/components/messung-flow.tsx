@@ -24,6 +24,11 @@ import {
   type TarifVorschlag,
 } from "@/lib/tarife/vorschlag";
 import { tarifUrteil, type UrteilTon } from "@/lib/tarife/urteil";
+import {
+  MINDEST_MESSTAGE,
+  vorpruefung,
+  type KriteriumName,
+} from "@/lib/tarife/kriterien";
 import { MAX_UPLOAD_BYTES } from "@/lib/rechnung/dateipruefung.ts";
 import { scanSchritt, type ScanSchritt } from "@/lib/rechnung/scan-fluss.ts";
 
@@ -338,6 +343,7 @@ export function MessungFlow() {
               ? result.download_rate_avg_mbps
               : null
           }
+          connection={connection}
         />
 
         {/* Ehrlichkeits-Labels — Produktgesetz, nicht verhandelbar */}
@@ -681,9 +687,11 @@ function TarifDeltaBalken({
 function TarifClaim({
   anbieter,
   gemessenMbps,
+  connection,
 }: {
   anbieter: string | null;
   gemessenMbps: number | null;
+  connection: ConnectionType | null;
 }) {
   const [gewaehlt, setGewaehlt] = useState<Tarif | null>(null);
   const [alleZeigen, setAlleZeigen] = useState(false);
@@ -926,8 +934,149 @@ function TarifClaim({
         <TarifDeltaBalken tarif={gewaehlt} gemessenMbps={gemessenMbps} ton={ton} />
 
         <div className={`rounded-xl border px-4 py-3 text-sm leading-6 ${urteilStil}`}>{claim}</div>
+
+        {/* Passt alles, gibt es nichts zu tun — dann bleibt der Schirm ruhig. */}
+        {ton !== "gut" && (
+          <WieEsWeitergeht
+            tarif={gewaehlt}
+            gemessenMbps={gemessenMbps}
+            connection={connection}
+          />
+        )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Der ehrliche nächste Schritt nach einem schlechten Urteil.
+ *
+ * Ohne diesen Abschnitt endet das Ergebnis mit "das passt nicht zu deinem
+ * Tarif" und lässt den Nutzer stehen. Die Leiter nennt den billigsten Schritt
+ * zuerst — ein langsames WLAN sieht genauso aus wie eine langsame Leitung, und
+ * wer deswegen seinen Anbieter anschreibt, blamiert sich — und führt dann zu
+ * dem einzigen Weg, der rechtlich zählt.
+ *
+ * Die Schwellen stammen aus `vorpruefung()`, nicht aus einer zweiten Rechnung
+ * an dieser Stelle: Was hier als Ziel steht, muss dasselbe sein, woran später
+ * gemessen wird.
+ */
+function WieEsWeitergeht({
+  tarif,
+  gemessenMbps,
+  connection,
+}: {
+  tarif: Tarif;
+  gemessenMbps: number;
+  connection: ConnectionType | null;
+}) {
+  // Eine einzelne Messung an einem Messtag. Welcher Kalendertag das ist,
+  // ändert am Ergebnis nichts, solange es nur einer ist — der feste Schlüssel
+  // vermeidet einen Unterschied zwischen Server- und Browser-Darstellung.
+  // Sobald echte Messreihen gespeichert werden (Phase 7), stehen hier Daten.
+  const pruefung = vorpruefung(tarif, [{ mbps: gemessenMbps, tag: "einzelmessung" }]);
+  const schwelle = (name: KriteriumName) =>
+    pruefung.kriterien.find((k) => k.name === name)?.referenzMbps ?? null;
+  const schwelle90 = schwelle("90_prozent");
+  const schwelleNormal = schwelle("ueblich");
+  const schwelleMin = schwelle("minimum");
+
+  // Bei "lan" ist die billige Erklärung schon ausgeschlossen; dann beginnt die
+  // Leiter direkt bei der offiziellen Messung.
+  const kabelSchrittNoetig = connection !== "lan";
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+        Wie es weitergeht
+      </div>
+
+      <ol className="flex flex-col gap-3">
+        {kabelSchrittNoetig && (
+          <Stufe nummer={1} titel="Erst per Kabel gegenprüfen">
+            Ein langsames WLAN sieht genauso aus wie eine langsame Leitung. Steck dein Gerät
+            einmal per LAN-Kabel an den Router und miss erneut — bleibt der Wert niedrig, liegt
+            es nicht am WLAN.
+          </Stufe>
+        )}
+        {/* "Dann" verweist auf die Kabel-Stufe davor — fällt die weg, wäre der
+            Verweis ins Leere gerichtet und die Stufe hieße "1. Dann …". */}
+        <Stufe
+          nummer={kabelSchrittNoetig ? 2 : 1}
+          titel={kabelSchrittNoetig ? "Dann offiziell messen" : "Offiziell messen"}
+        >
+          Für Minderung oder Kündigung zählt allein die{" "}
+          <a
+            href="https://breitbandmessung.de"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+          >
+            Breitbandmessung
+          </a>{" "}
+          der Bundesnetzagentur: ein Desktop-Programm, 3 Messtage, je 10 Messungen. Unsere
+          Messung zeigt dir nur, ob sich der Aufwand lohnt.
+        </Stufe>
+      </ol>
+
+      <details className="group">
+        <summary className="cursor-pointer list-none text-xs font-medium text-zinc-500 underline underline-offset-2 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
+          Was dort geprüft wird
+        </summary>
+        <div className="mt-2 flex flex-col gap-2 text-xs leading-5 text-zinc-600 dark:text-zinc-400">
+          <p>
+            Eines dieser drei Anzeichen genügt für eine erhebliche Abweichung (§ 57 Abs. 4 TKG)
+            — bei {tarif.tarifname}:
+          </p>
+          <ul className="flex list-disc flex-col gap-1 pl-4">
+            {schwelle90 !== null && (
+              <li>
+                An mindestens 2 von 3 Messtagen wird nie {formatMbps(schwelle90)} Mbit/s erreicht
+                (90 % von {formatMbps(tarif.download_max_mbps)}).
+              </li>
+            )}
+            {schwelleNormal !== null && (
+              <li>
+                Weniger als 90 % aller Messungen erreichen {formatMbps(schwelleNormal)} Mbit/s.
+              </li>
+            )}
+            {schwelleMin !== null && (
+              <li>
+                An mindestens 2 von 3 Messtagen liegt der Wert unter {formatMbps(schwelleMin)}{" "}
+                Mbit/s.
+              </li>
+            )}
+          </ul>
+          <p className="text-zinc-500 dark:text-zinc-500">
+            Deine eine Messung reicht dafür nicht — für ein Urteil fehlen noch{" "}
+            {MINDEST_MESSTAGE - pruefung.kennzahlen.messtage} Messtage.
+          </p>
+        </div>
+      </details>
+    </div>
+  );
+}
+
+/** Eine Stufe der Leiter — Nummer, Titel, Erklärung. */
+function Stufe({
+  nummer,
+  titel,
+  children,
+}: {
+  nummer: number;
+  titel: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <li className="flex gap-3">
+      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-[11px] font-bold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+        {nummer}
+      </span>
+      <div className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+        <span className="font-semibold text-zinc-900 dark:text-zinc-100">{titel}.</span>{" "}
+        {children}
+      </div>
+    </li>
   );
 }
 
