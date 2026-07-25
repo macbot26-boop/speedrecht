@@ -18,6 +18,7 @@
 // Rein gehalten (alles kommt als Parameter herein) — testbar ohne Bundler.
 
 import { formatMbps } from "../tarife/anzeige.ts";
+import { tarifUrteil } from "../tarife/urteil.ts";
 import type { Tarif } from "../tarife/vorschlag";
 
 /** Wie das Gerät bei der Messung am Router hing. */
@@ -90,6 +91,32 @@ function messwegSatz(verbindung: Verbindung | null): string {
 }
 
 /**
+ * Benennt, welche zugesicherte Rate unterschritten ist.
+ *
+ * Die Einstufung kommt aus `tarifUrteil` und wird hier NICHT neu gerechnet:
+ * Stünde im Brief eine andere Schwelle als auf dem Ergebnis-Schirm, widersprächen
+ * sich beide — und der Nutzer merkte es erst, wenn der Anbieter nachrechnet.
+ *
+ * Bewusst ohne Verstärkung wie "deutlich": Wie groß der Abstand ist, kann der
+ * Anbieter den Zahlen zwei Absätze weiter oben selbst entnehmen. Ein Wort, das
+ * bei 1399 gegenüber 1400 Mbit/s unwahr wäre, gehört nicht in einen Brief, der
+ * von seiner Glaubwürdigkeit lebt.
+ *
+ * Leerer String, wenn nichts unterschritten ist oder das Blatt keine Referenz
+ * nennt — dann wird auch nichts behauptet.
+ */
+function abweichungSatz(tarif: Tarif, gemessenMbps: number): string {
+  const ton = tarifUrteil(tarif, gemessenMbps);
+  if (ton === "unter_min") {
+    return "Der gemessene Wert liegt unter der für diesen Tarif zugesicherten Mindestrate.";
+  }
+  if (ton === "unter_norm") {
+    return "Der gemessene Wert liegt unter der für diesen Tarif normalerweise zur Verfügung stehenden Rate.";
+  }
+  return "";
+}
+
+/**
  * Baut Betreff und Brieftext.
  *
  * Alle Zahlen kommen aus dem Produktinformationsblatt beziehungsweise aus der
@@ -114,10 +141,13 @@ export function briefBauen(eingabe: BriefEingabe): Brief {
     // unserer Oberfläche: Der Anbieter soll den Wert einordnen können, und der
     // Nutzer soll nicht mehr behaupten, als er belegen kann.
     "Diese Messung ist ein Anhaltspunkt und kein förmlicher Nachweis: Sie stammt nicht aus dem Messverfahren der Bundesnetzagentur, und eine einzelne Messung würde dafür ohnehin nicht genügen.",
-    "Ich bitte Sie daher, meinen Anschluss zu prüfen und mir mitzuteilen, ob eine Störung oder eine dauerhafte Einschränkung vorliegt.",
-    "Über eine Rückmeldung würde ich mich freuen.",
+    // Steht NACH der Einschränkung, nicht davor: Die Einschränkung betrifft die
+    // Methode, dieser Satz die Tatsache. So endet der Brief auf dem Punkt, um
+    // den es geht, und nicht auf dem Vorbehalt.
+    abweichungSatz(tarif, gemessenMbps),
+    "Ich bitte Sie, meinen Anschluss zu prüfen und mir mitzuteilen, ob eine Störung oder eine dauerhafte Einschränkung vorliegt.",
     name ? `Mit freundlichen Grüßen\n${name}` : "Mit freundlichen Grüßen",
-  ];
+  ].filter((absatz) => absatz !== "");
 
   return { betreff, text: absaetze.join("\n\n") };
 }

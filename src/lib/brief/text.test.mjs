@@ -10,6 +10,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { briefBauen } from "./text.ts";
+import { tarifUrteil } from "../tarife/urteil.ts";
 
 const daten = JSON.parse(
   await readFile(new URL("../tarife/tarife.generated.json", import.meta.url), "utf8")
@@ -95,7 +96,57 @@ test("der Brief benennt seine eigene Grenze", () => {
 test("der Brief bittet um Prüfung, statt etwas zu erklären", () => {
   const { betreff, text } = briefBauen(eingabe());
   assert.match(betreff, /^Bitte um Prüfung meines Anschlusses/);
-  assert.match(text, /Ich bitte Sie daher, meinen Anschluss zu prüfen/);
+  assert.match(text, /Ich bitte Sie, meinen Anschluss zu prüfen/);
+});
+
+// ---------------------------------------------------------------------------
+// Die benannte Abweichung stimmt mit dem Urteil überein
+// ---------------------------------------------------------------------------
+
+test("unter der Mindestrate wird die Mindestrate benannt", () => {
+  // MagentaZuhause L: Minimum 54 — 42 liegt darunter.
+  const { text } = briefBauen(eingabe({ gemessenMbps: 42 }));
+  assert.match(text, /liegt unter der für diesen Tarif zugesicherten Mindestrate\./);
+});
+
+test("zwischen Minimum und Normalrate wird die Normalrate benannt", () => {
+  // MagentaZuhause L: Minimum 54, normalerweise 83,8 — 60 liegt dazwischen.
+  const { text } = briefBauen(eingabe({ gemessenMbps: 60 }));
+  assert.match(text, /liegt unter der für diesen Tarif normalerweise zur Verfügung stehenden Rate\./);
+  assert.ok(!text.includes("Mindestrate."), "die Mindestrate ist hier nicht unterschritten");
+});
+
+test("ohne Unterschreitung wird gar keine Abweichung behauptet", () => {
+  const { text } = briefBauen(eingabe({ gemessenMbps: 95 }));
+  assert.ok(!text.includes("liegt unter der"), "bei gutem Wert keine Abweichungs-Behauptung");
+  // Und kein leerer Absatz, wo der Satz gestanden hätte.
+  assert.ok(!text.includes("\n\n\n"), "kein leerer Absatz");
+});
+
+test("ohne Referenzwerte im Blatt wird nichts behauptet", () => {
+  const nurMax = { ...magentaL, download_normal_mbps: null, download_min_mbps: null };
+  const { text } = briefBauen(eingabe({ tarif: nurMax, gemessenMbps: 1 }));
+  assert.ok(!text.includes("liegt unter der"), "ohne Referenz kein Vorwurf");
+});
+
+test("die Abweichung folgt dem Urteil, statt neu gerechnet zu werden", () => {
+  // Läuft der Brief anders als das Urteil, widersprechen sich Schirm und Brief.
+  for (const mbps of [1, 42, 53.9, 54, 60, 83.7, 83.8, 95, 200]) {
+    const { text } = briefBauen(eingabe({ gemessenMbps: mbps }));
+    const ton = tarifUrteil(magentaL, mbps);
+    if (ton === "unter_min") assert.match(text, /zugesicherten Mindestrate\./, `bei ${mbps}`);
+    else if (ton === "unter_norm")
+      assert.match(text, /normalerweise zur Verfügung stehenden Rate\.\n/, `bei ${mbps}`);
+    else assert.ok(!text.includes("liegt unter der"), `bei ${mbps} darf nichts behauptet werden`);
+  }
+});
+
+test("keine unbelegte Verstärkung wie „deutlich“", () => {
+  // Bei 53,9 gegenüber 54 wäre "deutlich unter" schlicht unwahr — und ein
+  // Brief, der von seiner Glaubwürdigkeit lebt, darf sich das nicht leisten.
+  const knapp = briefBauen(eingabe({ gemessenMbps: 53.9 })).text;
+  assert.match(knapp, /liegt unter der für diesen Tarif zugesicherten Mindestrate\./);
+  assert.ok(!knapp.includes("deutlich"), "keine Verstärkung ohne Grundlage");
 });
 
 // ---------------------------------------------------------------------------
