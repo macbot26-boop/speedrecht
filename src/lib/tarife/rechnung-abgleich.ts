@@ -173,7 +173,42 @@ function punkte(gelesen: string[], kandidat: string): number | null {
 }
 
 /**
- * Kanonischer Anbieter aus freiem Text ("Telekom Deutschland GmbH" → "Telekom").
+ * Firmennamen, unter denen ein Anbieter abrechnet, ohne dass seine Marke
+ * darin vorkäme. Im Briefkopf einer Rechnung steht die Gesellschaft, nicht
+ * das Logo — wer nur nach Marken sucht, weist echte Kunden ab.
+ *
+ * Jeder Eintrag ist an den offiziellen Produktinformationsblättern belegt
+ * (Stand der Blätter-Sammlung aus `scripts/tarife-sammeln.mjs`); die Zahl
+ * nennt, in wie vielen Blättern des Anbieters der Name steht. Ohne solchen
+ * Beleg gehört hier nichts hinein: Ein falscher Eintrag ordnet eine Rechnung
+ * dem falschen Anbieter zu und damit fremde Geschwindigkeiten.
+ *
+ * Nicht aufgeführte Gesellschaften brauchen keinen Eintrag, weil ihr Name
+ * die Marke bereits enthält — "Telekom Deutschland GmbH", "Vodafone Kabel
+ * Deutschland GmbH", "1&1 Telecom GmbH", "PYUR Sales & Service GmbH",
+ * "Deutsche Glasfaser Wholesale GmbH".
+ */
+const ANBIETER_ALIASE: [string, string][] = [
+  // o2 rechnet ausnahmslos unter der spanischen Konzernmarke ab; das Wort
+  // "o2" steht auf der Rechnung nur im Produktnamen (126/126 Blätter).
+  ["Telefónica", "o2"],
+  // PŸUR nennt in jedem Blatt fünf "kundenführende Gesellschaften" und sagt
+  // dazu, welche davon die Vertragspartnerin ist, hänge an der Adresse.
+  // Zwei davon tragen "PYUR" im Namen, diese drei nicht (je 60/60 Blätter).
+  ["HL komm", "PŸUR"],
+  ["Mediacom Kabelservice", "PŸUR"],
+  ["BBCom", "PŸUR"],
+  // Die Konzernmutter der obigen Gesellschaften. Sie steht in KEINEM der
+  // Blätter — anders als die vier darüber ist dieser Eintrag also nicht
+  // belegt, sondern Vorsorge für den Fall, dass sie im Briefkopf auftaucht.
+  // Er ist gefahrlos: In keinem der 944 gesammelten Blätter irgendeines
+  // Anbieters kommt "Tele Columbus" vor.
+  ["Tele Columbus", "PŸUR"],
+];
+
+/**
+ * Kanonischer Anbieter aus freiem Text ("Telekom Deutschland GmbH" → "Telekom",
+ * "Telefónica Germany GmbH & Co. OHG" → "o2").
  * Nur Namen aus FESTNETZ_ANBIETER; alles andere ist `null`.
  */
 export function anbieterAusText(text: string | null): string | null {
@@ -184,9 +219,13 @@ export function anbieterAusText(text: string | null): string | null {
 
   let bester: string | null = null;
   let besteLaenge = 0;
-  for (const anbieter of FESTNETZ_ANBIETER) {
-    const woerter = tokens(anbieter);
-    // Alle Wörter des Anbieternamens müssen vorkommen — "Deutsche Glasfaser"
+  const kandidaten: [string, string][] = [
+    ...FESTNETZ_ANBIETER.map((a): [string, string] => [a, a]),
+    ...ANBIETER_ALIASE,
+  ];
+  for (const [suchname, anbieter] of kandidaten) {
+    const woerter = tokens(suchname);
+    // Alle Wörter des gesuchten Namens müssen vorkommen — "Deutsche Glasfaser"
     // darf nicht an "Deutsche Telekom" hängenbleiben.
     if (!woerter.every((w) => menge.has(w))) continue;
     // Der längste Treffer gewinnt: "Deutsche Glasfaser" schlägt einen

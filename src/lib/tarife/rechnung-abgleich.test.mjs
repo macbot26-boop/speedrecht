@@ -73,6 +73,67 @@ test("fremder Absender ergibt keinen Anbieter", () => {
   assert.equal(anbieterAusText(null), null);
 });
 
+// Im Briefkopf einer Rechnung steht die abrechnende GESELLSCHAFT, nicht die
+// Marke. Diese Liste ist keine Erfindung: Jeder Name wurde in den 944
+// gesammelten Produktinformationsblättern nachgeschlagen; dahinter steht, in
+// wie vielen Blättern des jeweiligen Anbieters er vorkommt. Wer hier einen
+// Namen ergänzt, soll ihn genauso belegen können.
+const FIRMENNAMEN = [
+  ["Telekom Deutschland GmbH", "Telekom", "47/47"],
+  ["Vodafone GmbH", "Vodafone", "337/431"],
+  ["Vodafone Kabel Deutschland GmbH", "Vodafone", "35/431"],
+  ["Vodafone Hessen GmbH & Co. KG", "Vodafone", "38/431"],
+  ["Vodafone West GmbH", "Vodafone", "33/431"],
+  ["1&1 Telecom GmbH", "1&1", "253/253"],
+  ["Deutsche Glasfaser Wholesale GmbH", "Deutsche Glasfaser", "6/6"],
+  ["PYUR Sales & Service GmbH", "PŸUR", "60/60"],
+  ["PYUR Vertrieb & Service GmbH", "PŸUR", "60/60"],
+  // Ab hier: Namen ohne die Marke im Wortlaut — genau die fielen früher durch.
+  ["Telefónica Germany GmbH & Co. OHG", "o2", "126/126"],
+  ["HL komm Telekommunikations GmbH", "PŸUR", "60/60"],
+  ["Mediacom Kabelservice GmbH", "PŸUR", "60/60"],
+  ["BBCom Berlin-Brandenburgische Communikationsgesellschaft mbH", "PŸUR", "60/60"],
+  // Konzernmutter, bewusst ohne Blatt-Beleg aufgenommen (siehe Quelltext).
+  ["Tele Columbus AG", "PŸUR", "kein Blatt"],
+];
+
+test("die Gesellschaft im Briefkopf führt zum richtigen Anbieter", () => {
+  for (const [firma, erwartet, beleg] of FIRMENNAMEN) {
+    assert.equal(anbieterAusText(firma), erwartet, `${firma} (Beleg: ${beleg})`);
+  }
+});
+
+test("kein Firmenname landet beim falschen Anbieter", () => {
+  // Der teure Fehler wäre nicht "nicht erkannt", sondern "falsch erkannt":
+  // Dann bekäme der Nutzer die Geschwindigkeiten eines fremden Anbieters.
+  for (const [firma, erwartet] of FIRMENNAMEN) {
+    for (const [andereFirma, andererAnbieter] of FIRMENNAMEN) {
+      if (andererAnbieter === erwartet) continue;
+      assert.notEqual(
+        anbieterAusText(firma),
+        andererAnbieter,
+        `"${firma}" wurde ${andererAnbieter} zugeordnet (wie "${andereFirma}")`
+      );
+    }
+  }
+});
+
+test("die o2-Rechnung nennt die Marke nur im Produktnamen", () => {
+  // Der reale Fall, den die Genauigkeits-Messung fand: Das Modell liest
+  // korrekt "Telefónica Germany GmbH & Co. OHG" aus dem Briefkopf — und der
+  // ganze Scan fiel durch, obwohl alles richtig gelesen war.
+  const a = lese("Telefónica Germany GmbH & Co. OHG", "O2 my Home S");
+  assert.notEqual(a.lage, "kein_anbieter");
+  assert.equal(a.anbieter, "o2");
+});
+
+test("die PŸUR-Vertragspartnerin führt bis zum Tarif durch", () => {
+  const a = lese("HL komm Telekommunikations GmbH", "Surf & Phone 50 (DSL)");
+  assert.equal(a.anbieter, "PŸUR");
+  assert.equal(a.lage, "eindeutig");
+  assert.equal(a.tarifname, "Surf & Phone 50 (DSL)");
+});
+
 // --- Zuordnung ------------------------------------------------------------
 
 test("exakter Vertragsname führt direkt zum Urteil", () => {
