@@ -49,3 +49,28 @@ export function jsonPostAblehnung(
   }
   return null;
 }
+
+/**
+ * Dieselbe Vorprüfung für Datei-Uploads (multipart statt JSON).
+ *
+ * Die Größe wird hier schon am Header abgelehnt, also BEVOR ein einziges Byte
+ * der Datei eingelesen wird — sonst könnte man den Server mit einem
+ * angekündigten Riesen-Upload beschäftigen.
+ */
+export function uploadPostAblehnung(
+  request: Request,
+  maxBytes: number
+): Response | null {
+  if (fremdeHerkunft(request)) {
+    return Response.json({ error: "Fremde Herkunft" }, { status: 403 });
+  }
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().includes("multipart/form-data")) {
+    return Response.json({ error: "Erwarte eine hochgeladene Datei" }, { status: 415 });
+  }
+  const contentLength = Number(request.headers.get("content-length"));
+  if (!Number.isFinite(contentLength) || contentLength > maxBytes) {
+    return Response.json({ error: "Datei zu groß" }, { status: 413 });
+  }
+  return null;
+}
