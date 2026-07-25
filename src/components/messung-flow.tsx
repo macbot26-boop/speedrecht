@@ -1015,7 +1015,7 @@ function WieEsWeitergeht({
             Breitbandmessung
           </a>{" "}
           der Bundesnetzagentur: ein Desktop-Programm, 3 Messtage, je 10 Messungen. Unsere
-          Messung kann sie nicht ersetzen — sie zeigt dir nur, ob sich der Aufwand lohnt.
+          Messung zeigt dir nur, ob sich der Aufwand lohnt.
         </Stufe>
       </ol>
 
