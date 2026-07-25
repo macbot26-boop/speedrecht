@@ -70,8 +70,23 @@ const SCHEMA = {
 
 export type ExtraktionsFehler = "kein_schluessel" | "abgelehnt" | "unlesbar" | "dienst_gestoert";
 
+/**
+ * Was der Aufruf an Token gekostet hat.
+ *
+ * Steht hier, damit die Genauigkeits-Messung
+ * (`scripts/rechnung-genauigkeit.mjs`) Trefferquote und Preis eines Modells
+ * am SELBEN Aufruf ablesen kann — sonst wäre die Frage „liest ein billigeres
+ * Modell genauso gut?" nur zu schätzen. Zahlen über die Anfrage, nicht aus
+ * ihr: Es sind Zähler, kein Inhalt der Rechnung. Die Route verwendet sie
+ * nicht und protokolliert sie nicht.
+ */
+export interface Verbrauch {
+  eingabeTokens: number;
+  ausgabeTokens: number;
+}
+
 export type ExtraktionsErgebnis =
-  | { ok: true; angaben: RechnungsAngaben }
+  | { ok: true; angaben: RechnungsAngaben; verbrauch: Verbrauch }
   | { ok: false; fehler: ExtraktionsFehler };
 
 let client: Anthropic | null = null;
@@ -98,7 +113,8 @@ export function scanVerfuegbar(): boolean {
  */
 export async function rechnungLesen(
   bytes: Uint8Array,
-  typ: string
+  typ: string,
+  modell: string = MODELL
 ): Promise<ExtraktionsErgebnis> {
   const anthropic = clientHolen();
   if (!anthropic) return { ok: false, fehler: "kein_schluessel" };
@@ -119,7 +135,7 @@ export async function rechnungLesen(
   let antwort;
   try {
     antwort = await anthropic.messages.create({
-      model: MODELL,
+      model: modell,
       max_tokens: 4000,
       system: SYSTEM_PROMPT,
       output_config: { format: { type: "json_schema", schema: SCHEMA } },
@@ -146,7 +162,14 @@ export async function rechnungLesen(
   if (!text || text.type !== "text") return { ok: false, fehler: "unlesbar" };
 
   try {
-    return { ok: true, angaben: angabenPruefen(JSON.parse(text.text)) };
+    return {
+      ok: true,
+      angaben: angabenPruefen(JSON.parse(text.text)),
+      verbrauch: {
+        eingabeTokens: antwort.usage.input_tokens,
+        ausgabeTokens: antwort.usage.output_tokens,
+      },
+    };
   } catch {
     return { ok: false, fehler: "unlesbar" };
   }
