@@ -21,8 +21,11 @@ import {
   tarifVorschlaege,
   type Tarif,
   type TarifDaten,
+  type TarifVorschlag,
 } from "@/lib/tarife/vorschlag";
 import { tarifUrteil, type UrteilTon } from "@/lib/tarife/urteil";
+import { MAX_UPLOAD_BYTES } from "@/lib/rechnung/dateipruefung.ts";
+import { scanSchritt, type ScanSchritt } from "@/lib/rechnung/scan-fluss.ts";
 
 // Statische Tarif-Tabelle (aus den Produktinformationsblättern erzeugt).
 // Der JSON-Import ist strukturell die TarifDaten-Form.
@@ -687,6 +690,15 @@ function TarifClaim({
   // Stufe 2: Verträge einer Klasse, die verschieden heißen. Erst gesetzt, wenn
   // die Klasse mehrere Namen führt — sonst bliebe die Auswahl bei einem Tap.
   const [namensWahl, setNamensWahl] = useState<Tarif[] | null>(null);
+  const [scanOffen, setScanOffen] = useState(false);
+  // Gesetzt, sobald ein Vertrag aus einer gescannten Rechnung stammt. Der
+  // Anbieter daraus schlägt den aus der IP-Erkennung: Auf der Rechnung steht,
+  // mit wem der Vertrag besteht — die IP sagt nur, in wessen Netz gerade
+  // gemessen wurde, und das können zwei verschiedene sein.
+  const [ausRechnung, setAusRechnung] = useState<{
+    anbieter: string;
+    konflikt: string | null;
+  } | null>(null);
 
   // "ändern" im Ergebnis fängt von vorn an; "zurück" aus der Namensfrage
   // behält dagegen die geöffnete Vollliste — wer sich durch 66 Vodafone-Knöpfe
@@ -695,21 +707,62 @@ function TarifClaim({
     setGewaehlt(null);
     setNamensWahl(null);
     setAlleZeigen(false);
+    setScanOffen(false);
+    setAusRechnung(null);
   };
   const zurueckAusNamensfrage = () => setNamensWahl(null);
 
+  // Eine Klasse aus dem Scan geht denselben Weg wie ein Tap in der Auswahl:
+  // ein Name darin heißt fertig, mehrere heißen Stufe 2. Sonst stünde nach
+  // einem Scan ein Vertragsname im Ergebnis, den der Nutzer nie bestellt hat
+  // — genau der Fehler, den die zweistufige Auswahl behoben hat.
+  const klasseUebernehmen = (klasse: TarifVorschlag) => {
+    setScanOffen(false);
+    if (klasse.namensWahl.length <= 1) setGewaehlt(klasse.tarif);
+    else setNamensWahl(klasse.namensWahl);
+  };
+
   if (!anbieter || gemessenMbps == null || gemessenMbps <= 0) return null;
 
-  const vorschlaege = tarifVorschlaege(TARIFE, anbieter, gemessenMbps);
+  const anzeigeAnbieter = ausRechnung?.anbieter ?? anbieter;
+  const konfliktWarnung = ausRechnung?.konflikt ? (
+    <Warnkarte titel="Rechnung und Messung passen nicht zusammen.">
+      {ausRechnung.konflikt} Das Urteil unten vergleicht dann zwei verschiedene
+      Anschlüsse.
+    </Warnkarte>
+  ) : null;
+
+  if (scanOffen) {
+    return (
+      <RechnungScan
+        netzAnbieter={anbieter}
+        onKlasse={(klasse, gelesenerAnbieter, konflikt) => {
+          setAusRechnung({ anbieter: gelesenerAnbieter, konflikt });
+          klasseUebernehmen(klasse);
+        }}
+        onAnbieterOhneTarif={(gelesenerAnbieter, konflikt) => {
+          setAusRechnung({ anbieter: gelesenerAnbieter, konflikt });
+          setScanOffen(false);
+        }}
+        onAbbruch={() => setScanOffen(false)}
+      />
+    );
+  }
+
+  const vorschlaege = tarifVorschlaege(TARIFE, anzeigeAnbieter, gemessenMbps);
 
   // Anbieter erkannt, aber (noch) keine Tarife hinterlegt (Anbieter, deren
   // Tabelle noch nicht eingepflegt ist) — ehrlich sagen statt leerer Auswahl.
   if (vorschlaege.length === 0) {
     return (
-      <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left text-sm leading-6 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
-        Für{" "}
-        <span className="font-semibold text-zinc-800 dark:text-zinc-200">{anbieter}</span> haben wir
-        die Tarife noch nicht hinterlegt — der direkte Vergleich mit deinem Vertrag kommt bald.
+      <div className="flex w-full flex-col gap-3">
+        {konfliktWarnung}
+        <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left text-sm leading-6 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+          Für{" "}
+          <span className="font-semibold text-zinc-800 dark:text-zinc-200">{anzeigeAnbieter}</span>{" "}
+          haben wir die Tarife noch nicht hinterlegt — der direkte Vergleich mit deinem Vertrag
+          kommt bald.
+        </div>
       </div>
     );
   }
@@ -719,76 +772,96 @@ function TarifClaim({
   // später im Kulanz-Brief — auch bei dem, der einen anderen bestellt hat.
   if (!gewaehlt && namensWahl) {
     return (
-      <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left dark:border-zinc-800 dark:bg-zinc-950">
-        <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-          <span className="font-semibold">Fast geschafft.</span> Diese Geschwindigkeit gibt es bei{" "}
-          {anbieter} unter mehreren Namen. Welcher steht auf deiner Rechnung?
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {namensWahl.map((tarif) => (
+      <div className="flex w-full flex-col gap-3">
+        {konfliktWarnung}
+        <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left dark:border-zinc-800 dark:bg-zinc-950">
+          <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+            <span className="font-semibold">Fast geschafft.</span> Diese Geschwindigkeit gibt es bei{" "}
+            {anzeigeAnbieter} unter mehreren Namen. Welcher steht auf deiner Rechnung?
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {namensWahl.map((tarif) => (
+              <button
+                key={tarif.slug}
+                onClick={() => setGewaehlt(tarif)}
+                className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+              >
+                {tarif.tarifname}
+              </button>
+            ))}
+          </div>
+          <p className="mt-3 text-xs leading-5 text-zinc-500">
+            Alle liefern dieselben zugesicherten Werte — dein Ergebnis ist also dasselbe. Der Name
+            entscheidet nur, welcher Vertrag später im Schreiben an {anzeigeAnbieter} steht.{" "}
             <button
-              key={tarif.slug}
-              onClick={() => setGewaehlt(tarif)}
-              className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+              onClick={zurueckAusNamensfrage}
+              className="text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
             >
-              {tarif.tarifname}
+              zurück
             </button>
-          ))}
+          </p>
         </div>
-        <p className="mt-3 text-xs leading-5 text-zinc-500">
-          Alle liefern dieselben zugesicherten Werte — dein Ergebnis ist also dasselbe. Der Name
-          entscheidet nur, welcher Vertrag später im Schreiben an {anbieter} steht.{" "}
-          <button
-            onClick={zurueckAusNamensfrage}
-            className="text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
-          >
-            zurück
-          </button>
-        </p>
       </div>
     );
   }
 
   // --- Stufe 1: Geschwindigkeits-Klasse per Tap ---
   if (!gewaehlt) {
-    const optionen = alleZeigen ? tarifKlassen(TARIFE, anbieter) : vorschlaege;
+    const optionen = alleZeigen ? tarifKlassen(TARIFE, anzeigeAnbieter) : vorschlaege;
     return (
-      <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left dark:border-zinc-800 dark:bg-zinc-950">
-        <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-          <span className="font-semibold">Dein Netz: {anbieter}.</span> Welcher Tarif ist deiner? Ein
-          Tap zeigt dir, ob du bekommst, wofür du zahlst.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {optionen.map((v) => (
-            <button
-              key={v.tarif.slug}
-              onClick={() =>
+      <div className="flex w-full flex-col gap-3">
+        {konfliktWarnung}
+        <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left dark:border-zinc-800 dark:bg-zinc-950">
+          <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+            {ausRechnung ? (
+              <>
+                <span className="font-semibold">Deine Rechnung: {anzeigeAnbieter}.</span> Den
+                Vertragsnamen konnten wir darauf nicht finden — welcher Tarif ist deiner?
+              </>
+            ) : (
+              <>
+                <span className="font-semibold">Dein Netz: {anzeigeAnbieter}.</span> Welcher Tarif
+                ist deiner? Ein Tap zeigt dir, ob du bekommst, wofür du zahlst.
+              </>
+            )}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {optionen.map((v) => (
+              <KlassenKnopf
+                key={v.tarif.slug}
+                klasse={v}
                 // Ein Name in der Klasse: fertig. Mehrere: erst fragen, welcher
                 // — raten würde hier einen fremden Vertrag ins Ergebnis setzen.
-                v.namensWahl.length === 1 ? setGewaehlt(v.tarif) : setNamensWahl(v.namensWahl)
-              }
-              className="max-w-full rounded-2xl border border-zinc-300 px-4 py-2 text-left text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
-            >
-              {v.produkte.join(", ")}
-              <span className="ml-1 text-zinc-400">
-                {v.weitereNamen > 0 && `+${v.weitereNamen} weitere `}· bis zu{" "}
-                {formatMbps(v.tarif.download_max_mbps)}
-                {/* Nur wo zwei Knöpfe sonst gleich aussähen: die Werte, die
-                    sie wirklich unterscheiden. */}
-                {v.unterscheidung?.normalMbps != null &&
-                  `, normal ${formatMbps(v.unterscheidung.normalMbps)}`}
-                {v.unterscheidung?.minMbps != null &&
-                  `, min ${formatMbps(v.unterscheidung.minMbps)}`}
+                onClick={() =>
+                  v.namensWahl.length === 1 ? setGewaehlt(v.tarif) : setNamensWahl(v.namensWahl)
+                }
+              />
+            ))}
+            {!alleZeigen && (
+              <button
+                onClick={() => setAlleZeigen(true)}
+                className="rounded-full px-4 py-2 text-sm font-medium text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+              >
+                Meiner ist nicht dabei …
+              </button>
+            )}
+          </div>
+
+          {/* Die Abkürzung — bewusst UNTER der Auswahl, nicht darüber: Wie gut
+              der Scan auf echten Handyfotos liest, ist noch nicht gemessen.
+              Solange das offen ist, bleibt der bewährte Weg der erste. */}
+          {!ausRechnung && (
+            <div className="mt-4 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+              <button
+                onClick={() => setScanOffen(true)}
+                className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+              >
+                📄 Rechnung scannen
+              </button>
+              <span className="ml-2 text-xs text-zinc-400 dark:text-zinc-500">
+                findet deinen Tarif automatisch
               </span>
-            </button>
-          ))}
-          {!alleZeigen && (
-            <button
-              onClick={() => setAlleZeigen(true)}
-              className="rounded-full px-4 py-2 text-sm font-medium text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
-            >
-              Meiner ist nicht dabei …
-            </button>
+            </div>
           )}
         </div>
       </div>
@@ -825,30 +898,355 @@ function TarifClaim({
     );
 
   return (
-    <div className="flex w-full flex-col gap-4 rounded-2xl border border-zinc-200 bg-white px-5 py-5 text-left dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="flex flex-col gap-0.5">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-          Dein bestellter Tarif
+    <div className="flex w-full flex-col gap-3">
+      {konfliktWarnung}
+      <div className="flex w-full flex-col gap-4 rounded-2xl border border-zinc-200 bg-white px-5 py-5 text-left dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="flex flex-col gap-0.5">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+            Dein bestellter Tarif
+            {ausRechnung && " · von deiner Rechnung gelesen"}
+          </div>
+          <div className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
+            {gewaehlt.tarifname}{" "}
+            <span className="font-normal text-zinc-400">· {anzeigeAnbieter}</span>
+          </div>
+          <div className="text-xs text-zinc-500">
+            bis zu {formatMbps(gewaehlt.download_max_mbps)} Mbit/s
+            {gewaehlt.monatspreis_eur != null &&
+              ` · ${preisFormat(gewaehlt.monatspreis_eur)} €/Monat`}
+            <button
+              onClick={zurueckZurAuswahl}
+              className="ml-2 text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+            >
+              ändern
+            </button>
+          </div>
         </div>
-        <div className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
-          {gewaehlt.tarifname} <span className="font-normal text-zinc-400">· {anbieter}</span>
-        </div>
-        <div className="text-xs text-zinc-500">
-          bis zu {formatMbps(gewaehlt.download_max_mbps)} Mbit/s
-          {gewaehlt.monatspreis_eur != null &&
-            ` · ${preisFormat(gewaehlt.monatspreis_eur)} €/Monat`}
-          <button
-            onClick={zurueckZurAuswahl}
-            className="ml-2 text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
-          >
-            ändern
+
+        <TarifDeltaBalken tarif={gewaehlt} gemessenMbps={gemessenMbps} ton={ton} />
+
+        <div className={`rounded-xl border px-4 py-3 text-sm leading-6 ${urteilStil}`}>{claim}</div>
+      </div>
+    </div>
+  );
+}
+
+// Ein Auswahl-Knopf für eine Bewertungs-Klasse.
+//
+// EINE Stelle für die Beschriftung, weil dieselbe Klasse auf zwei Wegen auf
+// den Schirm kommt (normale Auswahl und Rückfrage nach dem Scan). Liefe die
+// Beschriftung auseinander, trüge derselbe Vertrag je nach Weg einen anderen
+// Text — und der Nutzer könnte nicht erkennen, dass es derselbe ist.
+function KlassenKnopf({ klasse, onClick }: { klasse: TarifVorschlag; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="max-w-full rounded-2xl border border-zinc-300 px-4 py-2 text-left text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+    >
+      {klasse.produkte.join(", ")}
+      <span className="ml-1 text-zinc-400">
+        {klasse.weitereNamen > 0 && `+${klasse.weitereNamen} weitere `}· bis zu{" "}
+        {formatMbps(klasse.tarif.download_max_mbps)}
+        {/* Nur wo zwei Knöpfe sonst gleich aussähen: die Werte, die sie
+            wirklich unterscheiden. */}
+        {klasse.unterscheidung?.normalMbps != null &&
+          `, normal ${formatMbps(klasse.unterscheidung.normalMbps)}`}
+        {klasse.unterscheidung?.minMbps != null &&
+          `, min ${formatMbps(klasse.unterscheidung.minMbps)}`}
+      </span>
+    </button>
+  );
+}
+
+const KNOPF_HAUPT =
+  "rounded-full bg-[#0b57d0] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50";
+const KNOPF_NEBEN =
+  "rounded-full border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400";
+
+const SCAN_KARTE =
+  "w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left dark:border-zinc-800 dark:bg-zinc-950";
+
+/**
+ * Rechnung fotografieren oder hochladen — Einwilligung, Upload, Rückfrage.
+ *
+ * Zwei Dinge sind hier nicht verhandelbar:
+ *
+ * 1. Der Einwilligungstext steht VOR der Dateiauswahl, nicht daneben und
+ *    nicht danach. Wer auf "Einverstanden" tippt, hat gelesen, wohin seine
+ *    Rechnung geht; der Knopf IST die Einwilligung.
+ * 2. Aus jedem Ausgang führt ein Weg zurück in die normale Auswahl. Wessen
+ *    Rechnung nicht gelesen werden kann, darf nicht schlechter dastehen als
+ *    jemand, der es gar nicht erst versucht hat.
+ */
+function RechnungScan({
+  netzAnbieter,
+  onKlasse,
+  onAnbieterOhneTarif,
+  onAbbruch,
+}: {
+  /** Anbieter aus der IP-Erkennung — nur für die Konflikt-Warnung. */
+  netzAnbieter: string;
+  onKlasse: (klasse: TarifVorschlag, anbieter: string, konflikt: string | null) => void;
+  onAnbieterOhneTarif: (anbieter: string, konflikt: string | null) => void;
+  onAbbruch: () => void;
+}) {
+  type Zustand = { art: "einwilligung" } | { art: "laeuft" } | ScanSchritt;
+  const [zustand, setZustand] = useState<Zustand>({ art: "einwilligung" });
+  const dateiFeld = useRef<HTMLInputElement>(null);
+
+  const hochladen = async (datei: File) => {
+    // Vor dem Senden prüfen, nicht danach: Auf dem Handy kostet ein Upload,
+    // der am Ende ohnehin abgelehnt wird, Zeit und Datenvolumen.
+    if (datei.size > MAX_UPLOAD_BYTES) {
+      setZustand({
+        art: "fehler",
+        meldung: `Die Datei ist zu groß (höchstens ${Math.floor(MAX_UPLOAD_BYTES / 1024 / 1024)} MB).`,
+        erneutMoeglich: true,
+      });
+      return;
+    }
+
+    setZustand({ art: "laeuft" });
+    const formular = new FormData();
+    formular.append("datei", datei);
+    try {
+      const antwort = await fetch("/api/rechnung", { method: "POST", body: formular });
+      const daten: unknown = await antwort.json().catch(() => null);
+      setZustand(scanSchritt(antwort.status, daten, netzAnbieter));
+    } catch {
+      // Status 0 heißt für scanSchritt: Die Anfrage kam gar nicht durch.
+      setZustand(scanSchritt(0, null, netzAnbieter));
+    }
+  };
+
+  const nochmal = () => {
+    setZustand({ art: "einwilligung" });
+    dateiFeld.current?.click();
+  };
+
+  const zurueck = (
+    <button onClick={onAbbruch} className={KNOPF_NEBEN}>
+      Lieber selbst auswählen
+    </button>
+  );
+
+  const dateiEingabe = (
+    <input
+      ref={dateiFeld}
+      type="file"
+      // Kein `capture`: Sonst ginge auf dem Handy sofort die Kamera auf, und
+      // wer die Rechnung als PDF in der Mail hat, käme nicht an sie heran.
+      // So bleibt die Wahl zwischen Kamera, Mediathek und Dateien.
+      accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+      hidden
+      onChange={(e) => {
+        const datei = e.target.files?.[0];
+        // Zurücksetzen, sonst löst dieselbe Datei beim zweiten Mal nichts aus.
+        e.target.value = "";
+        if (datei) void hochladen(datei);
+      }}
+    />
+  );
+
+  if (zustand.art === "einwilligung") {
+    return (
+      <div className={SCAN_KARTE}>
+        {dateiEingabe}
+        <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+          Rechnung scannen
+        </h3>
+        <p className="mt-2 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+          Damit wir deinen Tarif automatisch finden, schicken wir dein Foto einmal an den KI-Dienst
+          Anthropic. Er liest daraus Anbieter, Vertragsname und Monatsbetrag.
+        </p>
+        <ul className="mt-3 flex flex-col gap-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+          <li>
+            <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+              Wir speichern deine Rechnung nicht.
+            </span>{" "}
+            Sie geht durch uns hindurch und wird danach verworfen — kein Speichern, kein Protokoll.
+          </li>
+          <li>
+            <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+              Verarbeitet wird außerhalb der EU.
+            </span>{" "}
+            Dort wird sie nach spätestens 30 Tagen gelöscht (Ausnahme: Verdacht auf Missbrauch) und{" "}
+            <span className="font-semibold text-zinc-800 dark:text-zinc-200">nicht</span> zum
+            Training von KI verwendet.
+          </li>
+          <li>
+            <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+              Dein Name und deine Anschrift werden nicht gelesen.
+            </span>
+          </li>
+          <li>
+            Was dein Vertrag an Tempo zusichert, kommt{" "}
+            <span className="font-semibold text-zinc-800 dark:text-zinc-200">nie</span> aus dem
+            Foto, sondern immer aus dem offiziellen Produktinformationsblatt.
+          </li>
+        </ul>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button onClick={() => dateiFeld.current?.click()} className={KNOPF_HAUPT}>
+            Einverstanden — Rechnung auswählen
           </button>
+          {zurueck}
+        </div>
+        <p className="mt-3 text-xs leading-5 text-zinc-500">
+          Es genügt die Seite, auf der dein Tarif steht.
+        </p>
+      </div>
+    );
+  }
+
+  if (zustand.art === "laeuft") {
+    return (
+      <div className={SCAN_KARTE}>
+        <p
+          className="animate-pulse text-sm font-medium text-zinc-700 dark:text-zinc-300"
+          aria-live="polite"
+        >
+          Rechnung wird gelesen …
+        </p>
+        <p className="mt-1 text-xs leading-5 text-zinc-500">
+          Das dauert ein paar Sekunden. Bitte lass die Seite offen.
+        </p>
+      </div>
+    );
+  }
+
+  // Ab hier: das Ergebnis. Die Warnung, dass Rechnung und Messung nicht
+  // zusammenpassen, gehört an den Anfang — sie ändert, wie das Ergebnis zu
+  // lesen ist, und käme unter den Knöpfen zu spät.
+  const konfliktHinweis =
+    "konflikt" in zustand && zustand.konflikt ? (
+      <Warnkarte titel="Rechnung und Messung passen nicht zusammen.">
+        {zustand.konflikt} Der Vergleich unten hält dann den Vertrag des einen Anschlusses gegen die
+        Messung eines anderen.
+      </Warnkarte>
+    ) : null;
+
+  if (zustand.art === "bestaetigen") {
+    return (
+      <div className="flex w-full flex-col gap-3">
+        {konfliktHinweis}
+        <div className={SCAN_KARTE}>
+          {dateiEingabe}
+          <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+            Von deiner Rechnung gelesen
+          </div>
+          <div className="mt-1 text-lg font-bold text-zinc-900 dark:text-zinc-50">
+            {zustand.tarifname}{" "}
+            <span className="font-normal text-zinc-400">· {zustand.anbieter}</span>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-zinc-700 dark:text-zinc-300">Stimmt das?</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              onClick={() => onKlasse(zustand.klasse, zustand.anbieter, zustand.konflikt)}
+              className={KNOPF_HAUPT}
+            >
+              Ja, das ist mein Tarif
+            </button>
+            <button onClick={onAbbruch} className={KNOPF_NEBEN}>
+              Nein, selbst auswählen
+            </button>
+          </div>
         </div>
       </div>
+    );
+  }
 
-      <TarifDeltaBalken tarif={gewaehlt} gemessenMbps={gemessenMbps} ton={ton} />
+  if (zustand.art === "namenswahl") {
+    return (
+      <div className="flex w-full flex-col gap-3">
+        {konfliktHinweis}
+        <div className={SCAN_KARTE}>
+          <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+            {zustand.tarifname ? (
+              <>
+                <span className="font-semibold">
+                  Auf deiner Rechnung steht {zustand.tarifname}.
+                </span>{" "}
+                Diesen Namen gibt es mit verschiedenen zugesicherten Werten — welcher steht in
+                deinem Vertrag?
+              </>
+            ) : (
+              <>
+                <span className="font-semibold">Fast geschafft.</span> Mehrere Verträge von{" "}
+                {zustand.anbieter} passen zu dem, was auf deiner Rechnung steht. Welcher ist deiner?
+              </>
+            )}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {zustand.klassen.map((klasse) => (
+              <KlassenKnopf
+                key={klasse.tarif.slug}
+                klasse={klasse}
+                onClick={() => onKlasse(klasse, zustand.anbieter, zustand.konflikt)}
+              />
+            ))}
+          </div>
+          <p className="mt-3 text-xs leading-5 text-zinc-500">
+            Die Werte unterscheiden sich — deshalb fragen wir, statt zu raten.{" "}
+            <button
+              onClick={onAbbruch}
+              className="text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+            >
+              lieber selbst auswählen
+            </button>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-      <div className={`rounded-xl border px-4 py-3 text-sm leading-6 ${urteilStil}`}>{claim}</div>
+  // Die vier Ausgänge, die alle im selben Angebot enden: zurück in die
+  // normale Auswahl — nur die Erklärung davor unterscheidet sich.
+  const [titel, erklaerung, erneut] =
+    zustand.art === "kein_tarif"
+      ? [
+          `${zustand.anbieter} erkannt, aber nicht den Vertragsnamen.`,
+          "Vielleicht steht er auf einer anderen Seite der Rechnung. Wähl ihn einfach selbst aus — die Auswahl ist schon auf deinen Anbieter eingestellt.",
+          true,
+        ]
+      : zustand.art === "kein_anbieter"
+        ? [
+            "Wir konnten die Rechnung nicht zuordnen.",
+            "Auf dem Bild war kein Anbieter zu erkennen, den wir führen. Am besten die Seite mit dem Briefkopf fotografieren — oder den Tarif selbst auswählen.",
+            true,
+          ]
+        : zustand.art === "keine_rechnung"
+          ? [
+              "Das sieht nicht nach einer Telekommunikations-Rechnung aus.",
+              "Am besten die Seite fotografieren, auf der dein Tarif steht.",
+              true,
+            ]
+          : [zustand.meldung, "", zustand.erneutMoeglich];
+
+  return (
+    <div className={SCAN_KARTE}>
+      {dateiEingabe}
+      <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+        <span className="font-semibold">{titel}</span> {erklaerung}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {erneut && (
+          <button onClick={nochmal} className={KNOPF_NEBEN}>
+            Andere Datei versuchen
+          </button>
+        )}
+        <button
+          onClick={() =>
+            // Der Anbieter aus der Rechnung wird übernommen — samt Warnung,
+            // falls er nicht zu dem Netz passt, in dem gemessen wurde.
+            zustand.art === "kein_tarif"
+              ? onAnbieterOhneTarif(zustand.anbieter, zustand.konflikt)
+              : onAbbruch()
+          }
+          className={KNOPF_HAUPT}
+        >
+          Tarif selbst auswählen
+        </button>
+      </div>
     </div>
   );
 }
