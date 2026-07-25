@@ -19,25 +19,35 @@
 
 import type { TarifVorschlag } from "../tarife/vorschlag.ts";
 
+/**
+ * Die Kundennummer von der Rechnung — `null`, wenn keine lesbar war.
+ *
+ * Sie wird für die Tarifbestimmung NICHT gebraucht und ist rein durchgereicht:
+ * Der Kulanz-Brief braucht sie, damit der Anbieter das Konto zuordnen kann,
+ * und ohne sie müsste der Nutzer sie von derselben Rechnung abtippen, die er
+ * gerade fotografiert hat.
+ */
+type MitKundennummer = { kundennummer: string | null };
+
 /** Der Bildschirm, der nach dem Lesen dran ist. */
 export type ScanSchritt =
   /** Genau ein Vertrag kommt in Frage — nur noch bestätigen lassen. */
-  | {
+  | ({
       art: "bestaetigen";
       anbieter: string;
       klasse: TarifVorschlag;
       /** Gelesener Vertragsname, sofern eindeutig — sonst der Klassen-Name. */
       tarifname: string;
       konflikt: string | null;
-    }
+    } & MitKundennummer)
   /** Der Name trägt mehrere Urteile: kurze Rückfrage statt Raten. */
-  | {
+  | ({
       art: "namenswahl";
       anbieter: string;
       klassen: TarifVorschlag[];
       tarifname: string | null;
       konflikt: string | null;
-    }
+    } & MitKundennummer)
   /**
    * Anbieter erkannt, Vertragsname nicht — zurück in die Auswahl.
    *
@@ -46,7 +56,7 @@ export type ScanSchritt =
    * hinterher ein Vertrag von Telekom neben einer Messung aus dem
    * Vodafone-Netz, ohne dass irgendwo steht, warum das nicht zusammenpasst.
    */
-  | { art: "kein_tarif"; anbieter: string; konflikt: string | null }
+  | ({ art: "kein_tarif"; anbieter: string; konflikt: string | null } & MitKundennummer)
   /** Nicht einmal der Anbieter war lesbar. */
   | { art: "kein_anbieter" }
   /** Das Dokument ist gar keine Telekommunikations-Rechnung. */
@@ -151,9 +161,12 @@ export function scanSchritt(
 
   const konflikt = konfliktText(anbieter, gemessenesNetz);
   const klassen = klassenAus(daten.klassen);
+  // Die Kundennummer ist reiner Durchreichposten für den Kulanz-Brief. Sie
+  // wird wie jedes andere Feld geprüft: Was keine Zeichenkette ist, wird null.
+  const kundennummer = typeof daten.kundennummer === "string" ? daten.kundennummer : null;
   // Ohne brauchbare Klasse ist "eindeutig" eine leere Behauptung — dann gilt
   // dasselbe wie bei einem nicht gefundenen Vertragsnamen.
-  if (klassen.length === 0) return { art: "kein_tarif", anbieter, konflikt };
+  if (klassen.length === 0) return { art: "kein_tarif", anbieter, konflikt, kundennummer };
 
   const tarifname = typeof daten.tarifname === "string" ? daten.tarifname : null;
 
@@ -168,14 +181,15 @@ export function scanSchritt(
       // eigenen Tarifliste stammt.
       tarifname: tarifname ?? klassen[0].tarif.tarifname,
       konflikt,
+      kundennummer,
     };
   }
 
   if (daten.lage === "rueckfrage") {
-    return { art: "namenswahl", anbieter, klassen, tarifname, konflikt };
+    return { art: "namenswahl", anbieter, klassen, tarifname, konflikt, kundennummer };
   }
 
   // "kein_tarif" und alles Unerwartete landen hier: Anbieter steht, Vertrag
   // nicht — die normale Auswahl übernimmt, mit dem Anbieter schon gesetzt.
-  return { art: "kein_tarif", anbieter, konflikt };
+  return { art: "kein_tarif", anbieter, konflikt, kundennummer };
 }

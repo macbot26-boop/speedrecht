@@ -75,7 +75,7 @@ test("mehrere Urteile hinter einem Namen führen zur Rückfrage", () => {
 
 test("Anbieter erkannt, Vertrag nicht — zurück in die Auswahl", () => {
   const s = scanSchritt(200, { istRechnung: true, lage: "kein_tarif", anbieter: "o2" }, "o2");
-  assert.deepEqual(s, { art: "kein_tarif", anbieter: "o2", konflikt: null });
+  assert.deepEqual(s, { art: "kein_tarif", anbieter: "o2", konflikt: null, kundennummer: null });
 });
 
 test("auch ohne gefundenen Vertrag bleibt der Anbieter-Konflikt sichtbar", () => {
@@ -178,7 +178,7 @@ test("'eindeutig' ohne brauchbare Klasse gilt als nicht gefunden", () => {
     const s = scanSchritt(200, { ...eindeutig, klassen }, "Telekom");
     assert.deepEqual(
       s,
-      { art: "kein_tarif", anbieter: "Telekom", konflikt: null },
+      { art: "kein_tarif", anbieter: "Telekom", konflikt: null, kundennummer: null },
       JSON.stringify(klassen)
     );
   }
@@ -186,7 +186,7 @@ test("'eindeutig' ohne brauchbare Klasse gilt als nicht gefunden", () => {
 
 test("unbekannte Lagen fallen sicher in die normale Auswahl", () => {
   const s = scanSchritt(200, { ...eindeutig, lage: "etwas_neues" }, "Telekom");
-  assert.deepEqual(s, { art: "kein_tarif", anbieter: "Telekom", konflikt: null });
+  assert.deepEqual(s, { art: "kein_tarif", anbieter: "Telekom", konflikt: null, kundennummer: null });
 });
 
 test("halb kaputte Klassenliste: die brauchbaren bleiben", () => {
@@ -198,4 +198,48 @@ test("halb kaputte Klassenliste: die brauchbaren bleiben", () => {
   assert.equal(s.art, "namenswahl");
   assert.equal(s.klassen.length, 1);
   assert.equal(s.klassen[0].tarif.tarifname, "Echt");
+});
+
+// ---------------------------------------------------------------------------
+// Kundennummer — reiner Durchreichposten für den Kulanz-Brief
+// ---------------------------------------------------------------------------
+
+test("die Kundennummer kommt auf jedem erfolgreichen Weg mit", () => {
+  // Sie steht auf derselben Rechnung, die der Nutzer gerade fotografiert hat —
+  // sie danach abtippen zu lassen, wäre der Widerspruch zum ganzen Produkt.
+  const nummer = "K-4711-0815";
+
+  const a = scanSchritt(200, { ...eindeutig, kundennummer: nummer }, "Telekom");
+  assert.equal(a.art, "bestaetigen");
+  assert.equal(a.kundennummer, nummer);
+
+  const b = scanSchritt(
+    200,
+    { ...eindeutig, lage: "rueckfrage", kundennummer: nummer },
+    "Telekom"
+  );
+  assert.equal(b.art, "namenswahl");
+  assert.equal(b.kundennummer, nummer);
+
+  const c = scanSchritt(
+    200,
+    { istRechnung: true, lage: "kein_tarif", anbieter: "o2", kundennummer: nummer },
+    "o2"
+  );
+  assert.equal(c.art, "kein_tarif");
+  assert.equal(c.kundennummer, nummer);
+});
+
+test("eine unbrauchbare Kundennummer wird zu null, nicht zu Unsinn", () => {
+  // Dieselbe Haltung wie bei allen anderen Feldern: Die Antwort kommt zwar vom
+  // eigenen Server, wird aber trotzdem geprüft.
+  for (const kaputt of [42, {}, [], true, null, undefined]) {
+    const s = scanSchritt(200, { ...eindeutig, kundennummer: kaputt }, "Telekom");
+    assert.equal(s.kundennummer, null, JSON.stringify(kaputt));
+  }
+});
+
+test("ohne Kundennummer auf der Rechnung bleibt das Feld leer", () => {
+  const s = scanSchritt(200, eindeutig, "Telekom");
+  assert.equal(s.kundennummer, null);
 });
