@@ -17,6 +17,12 @@ const eslintConfig = defineConfig([
     // Offizielle Messbibliothek: Upstream-Dateien bleiben unverändert
     // (siehe public/ias/PROVENANCE.md) und werden deshalb nicht gelintet
     "public/ias/**",
+    // Werkzeug-Verzeichnis: hier legt die Agenten-Umgebung zeitweise ganze
+    // Arbeitskopien des Projekts ab (.claude/worktrees/). Git schließt sie
+    // aus, CI sieht sie nie — ohne diesen Eintrag lintet "npm run lint" sie
+    // aber lokal mit und meldet Tausende Funde aus fremdem Stand. Die lokale
+    // Prüfung muss dasselbe messen wie CI, sonst ist sie wertlos.
+    ".claude/**",
   ]),
 ]);
 
