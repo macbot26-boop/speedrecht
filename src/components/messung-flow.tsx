@@ -31,6 +31,9 @@ import {
 } from "@/lib/tarife/kriterien";
 import { MAX_UPLOAD_BYTES } from "@/lib/rechnung/dateipruefung.ts";
 import { scanSchritt, type ScanSchritt } from "@/lib/rechnung/scan-fluss.ts";
+import { briefBauen, type Verbindung } from "@/lib/brief/text.ts";
+import { anschriftZeilen, kontaktFuer } from "@/lib/brief/kontakte.ts";
+import { briefHtml, mailtoUrl } from "@/lib/brief/versand.ts";
 
 // Statische Tarif-Tabelle (aus den Produktinformationsblättern erzeugt).
 // Der JSON-Import ist strukturell die TarifDaten-Form.
@@ -707,6 +710,10 @@ function TarifClaim({
     anbieter: string;
     konflikt: string | null;
   } | null>(null);
+  // Rein durchgereicht in den Kulanz-Brief. Bewusst getrennt von `ausRechnung`
+  // gehalten: Die Kundennummer sagt nichts über den Tarif und darf an keiner
+  // Stelle in die Tarifbestimmung geraten.
+  const [kundennummerAusRechnung, setKundennummerAusRechnung] = useState<string | null>(null);
 
   // "ändern" im Ergebnis fängt von vorn an; "zurück" aus der Namensfrage
   // behält dagegen die geöffnete Vollliste — wer sich durch 66 Vodafone-Knöpfe
@@ -717,6 +724,7 @@ function TarifClaim({
     setAlleZeigen(false);
     setScanOffen(false);
     setAusRechnung(null);
+    setKundennummerAusRechnung(null);
   };
   const zurueckAusNamensfrage = () => setNamensWahl(null);
 
@@ -744,12 +752,14 @@ function TarifClaim({
     return (
       <RechnungScan
         netzAnbieter={anbieter}
-        onKlasse={(klasse, gelesenerAnbieter, konflikt) => {
+        onKlasse={(klasse, gelesenerAnbieter, konflikt, gelesenKundennummer) => {
           setAusRechnung({ anbieter: gelesenerAnbieter, konflikt });
+          setKundennummerAusRechnung(gelesenKundennummer);
           klasseUebernehmen(klasse);
         }}
-        onAnbieterOhneTarif={(gelesenerAnbieter, konflikt) => {
+        onAnbieterOhneTarif={(gelesenerAnbieter, konflikt, gelesenKundennummer) => {
           setAusRechnung({ anbieter: gelesenerAnbieter, konflikt });
+          setKundennummerAusRechnung(gelesenKundennummer);
           setScanOffen(false);
         }}
         onAbbruch={() => setScanOffen(false)}
@@ -941,6 +951,7 @@ function TarifClaim({
             tarif={gewaehlt}
             gemessenMbps={gemessenMbps}
             connection={connection}
+            kundennummerAusRechnung={kundennummerAusRechnung}
           />
         )}
       </div>
@@ -965,10 +976,12 @@ function WieEsWeitergeht({
   tarif,
   gemessenMbps,
   connection,
+  kundennummerAusRechnung,
 }: {
   tarif: Tarif;
   gemessenMbps: number;
   connection: ConnectionType | null;
+  kundennummerAusRechnung: string | null;
 }) {
   // Eine einzelne Messung an einem Messtag. Welcher Kalendertag das ist,
   // ändert am Ergebnis nichts, solange es nur einer ist — der feste Schlüssel
@@ -982,8 +995,12 @@ function WieEsWeitergeht({
   const schwelleMin = schwelle("minimum");
 
   // Bei "lan" ist die billige Erklärung schon ausgeschlossen; dann beginnt die
-  // Leiter direkt bei der offiziellen Messung.
+  // Leiter direkt beim Brief an den Anbieter.
   const kabelSchrittNoetig = connection !== "lan";
+  // Fortlaufend gezählt, statt an jeder Stufe die Nummer auszurechnen: Sobald
+  // eine Stufe wegfällt, verschieben sich alle dahinter — von Hand gepflegte
+  // Nummern liefen dabei irgendwann auseinander.
+  let nummer = 0;
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
@@ -993,18 +1010,28 @@ function WieEsWeitergeht({
 
       <ol className="flex flex-col gap-3">
         {kabelSchrittNoetig && (
-          <Stufe nummer={1} titel="Erst per Kabel gegenprüfen">
+          <Stufe nummer={++nummer} titel="Erst per Kabel gegenprüfen">
             Ein langsames WLAN sieht genauso aus wie eine langsame Leitung. Steck dein Gerät
             einmal per LAN-Kabel an den Router und miss erneut — bleibt der Wert niedrig, liegt
             es nicht am WLAN.
           </Stufe>
         )}
-        {/* "Dann" verweist auf die Kabel-Stufe davor — fällt die weg, wäre der
-            Verweis ins Leere gerichtet und die Stufe hieße "1. Dann …". */}
-        <Stufe
-          nummer={kabelSchrittNoetig ? 2 : 1}
-          titel={kabelSchrittNoetig ? "Dann offiziell messen" : "Offiziell messen"}
-        >
+        {/* Der Brief steht VOR der offiziellen Messung: Er kostet nichts, und
+            oft prüft der Anbieter die Leitung auf Zuruf. Erst wenn das nichts
+            bringt, lohnt der Aufwand von drei Messtagen. */}
+        <Stufe nummer={++nummer} titel="Deinen Anbieter fragen">
+          Oft klärt sich das mit einer Nachricht — viele Anbieter prüfen die Leitung auf Zuruf.
+          Den Text haben wir dir fertig geschrieben.
+          <BriefKasten
+            tarif={tarif}
+            gemessenMbps={gemessenMbps}
+            connection={connection}
+            kundennummerAusRechnung={kundennummerAusRechnung}
+          />
+        </Stufe>
+        {/* "Dann" verweist auf die Stufe davor — und davor steht jetzt immer
+            der Brief, auch wenn die Kabel-Stufe wegfällt. */}
+        <Stufe nummer={++nummer} titel="Dann offiziell messen">
           Für Minderung oder Kündigung zählt allein die{" "}
           <a
             href="https://breitbandmessung.de"
@@ -1054,6 +1081,208 @@ function WieEsWeitergeht({
         </div>
       </details>
     </div>
+  );
+}
+
+/**
+ * Übersetzt die Verbindungsart der Messbibliothek in die des Briefes.
+ *
+ * Zwei getrennte Vokabulare mit Absicht: Die Messbibliothek spricht von
+ * "wifi", ein deutscher Brief von WLAN. Wichtiger ist aber der dritte Wert —
+ * "unknown" heißt „der Nutzer hat nichts angegeben" und muss im Brief zu
+ * `null` werden, also zu gar keiner Aussage. Als WLAN durchgereicht stünde
+ * eine Behauptung im Brief, die niemand aufgestellt hat.
+ */
+function briefVerbindung(connection: ConnectionType | null): Verbindung | null {
+  if (connection === "lan") return "lan";
+  if (connection === "wifi") return "wlan";
+  return null;
+}
+
+/**
+ * Der Kulanz-Brief: Angaben ergänzen, ansehen, mitnehmen.
+ *
+ * Alles passiert AUF DEM GERÄT. Kundennummer und Name verlassen den Browser
+ * nicht — sie wandern in den Text, und der geht in die Zwischenablage, in den
+ * Druck oder ins Mailprogramm des Nutzers. Es gibt keinen Server, der davon
+ * erführe, und darum auch nichts einzuwilligen.
+ */
+function BriefKasten({
+  tarif,
+  gemessenMbps,
+  connection,
+  kundennummerAusRechnung,
+}: {
+  tarif: Tarif;
+  gemessenMbps: number;
+  connection: ConnectionType | null;
+  kundennummerAusRechnung: string | null;
+}) {
+  const [offen, setOffen] = useState(false);
+  const [kundennummer, setKundennummer] = useState(kundennummerAusRechnung ?? "");
+  const [name, setName] = useState("");
+  const [kopiert, setKopiert] = useState(false);
+  const [hinweis, setHinweis] = useState<string | null>(null);
+
+  // Erst beim ersten Rendern im Browser bestimmt: Welcher Kalendertag "heute"
+  // ist, hängt an der Zeitzone des Geräts — dieselbe Überlegung wie bei
+  // `Messwert.tag`. Als Startwert einer useState-Variablen läuft es genau
+  // einmal und ändert sich danach nicht mehr unter dem Nutzer weg.
+  // Zweistellig erzwungen: Ohne die Optionen liefert "de-DE" ein "25.7.2026",
+  // und ein Brief mit einstelligem Monat sieht nach Bastelei aus.
+  const [datum] = useState(() =>
+    new Date().toLocaleDateString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
+  );
+
+  const kontakt = kontaktFuer(tarif.anbieter);
+  const brief = briefBauen({
+    tarif,
+    gemessenMbps,
+    datum,
+    verbindung: briefVerbindung(connection),
+    kundennummer: kundennummer.trim() || null,
+    name: name.trim() || null,
+  });
+  const entwurf = mailtoUrl(kontakt?.email ?? null, brief);
+
+  const kopieren = async () => {
+    try {
+      await navigator.clipboard.writeText(brief.text);
+      setKopiert(true);
+      setHinweis(null);
+      window.setTimeout(() => setKopiert(false), 2500);
+    } catch {
+      // Ohne Rechte auf die Zwischenablage bleibt der Text sichtbar — er steht
+      // ohnehin direkt darüber und lässt sich von Hand markieren.
+      setHinweis("Kopieren hat nicht geklappt — markier den Text oben und kopier ihn von Hand.");
+    }
+  };
+
+  const drucken = () => {
+    // Eigenes Dokument in einem unsichtbaren Rahmen statt eines Druck-Stils für
+    // die ganze Seite: Der Ergebnis-Schirm enthält Knöpfe und Messwerte, die
+    // auf einem Brief nichts zu suchen haben. Ein Rahmen statt eines neuen
+    // Fensters, weil Fenster am Popup-Blocker scheitern.
+    const rahmen = document.createElement("iframe");
+    rahmen.setAttribute("aria-hidden", "true");
+    rahmen.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+    document.body.appendChild(rahmen);
+    const fenster = rahmen.contentWindow;
+    if (!fenster) {
+      rahmen.remove();
+      setHinweis("Drucken hat nicht geklappt — kopier den Text und füg ihn in ein Dokument ein.");
+      return;
+    }
+    fenster.document.open();
+    fenster.document.write(briefHtml({ brief, kontakt, datum, name: name.trim() || null }));
+    fenster.document.close();
+    // Aufräumen, sobald der Druckdialog durch ist. Der Zeitgeber ist nur das
+    // Netz darunter: "afterprint" fehlt in manchen Browsern, und ein Rahmen,
+    // der für immer im Dokument hängt, ist ein stiller Fehler.
+    const aufraeumen = () => rahmen.remove();
+    fenster.addEventListener("afterprint", aufraeumen);
+    window.setTimeout(aufraeumen, 60_000);
+    fenster.focus();
+    fenster.print();
+  };
+
+  if (!offen) {
+    return (
+      <div className="mt-3">
+        <button onClick={() => setOffen(true)} className={KNOPF_NEBEN}>
+          Brief ansehen
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <BriefFeld
+          beschriftung="Kundennummer"
+          wert={kundennummer}
+          setzen={setKundennummer}
+          platzhalter="steht auf deiner Rechnung"
+        />
+        <BriefFeld
+          beschriftung="Dein Name"
+          wert={name}
+          setzen={setName}
+          platzhalter="für die Unterschrift"
+        />
+      </div>
+
+      {/* Der Empfänger steht offen da — auch dann, wenn wir keinen haben. Eine
+          erfundene Adresse wäre schlimmer als eine sichtbare Lücke. */}
+      <div className="rounded-md bg-zinc-50 px-3 py-2 text-xs leading-5 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
+        <span className="font-semibold text-zinc-700 dark:text-zinc-300">An: </span>
+        {kontakt ? anschriftZeilen(kontakt).join(", ") : "Anschrift deines Anbieters"}
+        {kontakt?.email ? (
+          <> · {kontakt.email}</>
+        ) : (
+          <> · keine E-Mail veröffentlicht — nutze das Kontaktformular deines Anbieters</>
+        )}
+      </div>
+
+      <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-md bg-zinc-50 px-3 py-3 font-sans text-xs leading-5 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+        {brief.text}
+      </pre>
+
+      <div className="flex flex-wrap gap-2">
+        <button onClick={() => void kopieren()} className={KNOPF_NEBEN}>
+          {kopiert ? "✓ Kopiert" : "Text kopieren"}
+        </button>
+        <button onClick={drucken} className={KNOPF_NEBEN}>
+          Als PDF sichern
+        </button>
+        {/* Kein Entwurf, wenn er gekürzt ankäme — lieber ein fehlender Knopf
+            als eine Mail, der hinten etwas fehlt. */}
+        {entwurf.url && (
+          <a href={entwurf.url} className={KNOPF_NEBEN}>
+            E-Mail schreiben
+          </a>
+        )}
+      </div>
+
+      {hinweis && <p className="text-xs leading-5 text-amber-700 dark:text-amber-500">{hinweis}</p>}
+
+      <p className="text-xs leading-5 text-zinc-500 dark:text-zinc-500">
+        Der Brief ist eine Bitte um Prüfung, kein Rechtsschreiben — für Minderung oder Kündigung
+        zählt allein die offizielle Messung aus dem Schritt darunter. Deine Angaben bleiben auf
+        diesem Gerät.
+      </p>
+    </div>
+  );
+}
+
+/** Ein beschriftetes Eingabefeld des Briefes. */
+function BriefFeld({
+  beschriftung,
+  wert,
+  setzen,
+  platzhalter,
+}: {
+  beschriftung: string;
+  wert: string;
+  setzen: (wert: string) => void;
+  platzhalter: string;
+}) {
+  return (
+    <label className="flex flex-1 flex-col gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+      {beschriftung}
+      <input
+        type="text"
+        value={wert}
+        onChange={(e) => setzen(e.target.value)}
+        placeholder={platzhalter}
+        className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-normal text-zinc-900 placeholder:text-zinc-400 focus:border-[#0b57d0] focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+      />
+    </label>
   );
 }
 
@@ -1135,8 +1364,17 @@ function RechnungScan({
 }: {
   /** Anbieter aus der IP-Erkennung — nur für die Konflikt-Warnung. */
   netzAnbieter: string;
-  onKlasse: (klasse: TarifVorschlag, anbieter: string, konflikt: string | null) => void;
-  onAnbieterOhneTarif: (anbieter: string, konflikt: string | null) => void;
+  onKlasse: (
+    klasse: TarifVorschlag,
+    anbieter: string,
+    konflikt: string | null,
+    kundennummer: string | null
+  ) => void;
+  onAnbieterOhneTarif: (
+    anbieter: string,
+    konflikt: string | null,
+    kundennummer: string | null
+  ) => void;
   onAbbruch: () => void;
 }) {
   type Zustand = { art: "einwilligung" } | { art: "laeuft" } | ScanSchritt;
@@ -1205,8 +1443,11 @@ function RechnungScan({
           Rechnung scannen
         </h3>
         <p className="mt-2 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+          {/* Die Aufzählung muss dem Extraktions-Schema entsprechen. Sie nannte
+              drei Felder, gelesen wurden vier: Die Kundennummer stand seit
+              Phase 4 im Schema, aber nicht in der Einwilligung. */}
           Damit wir deinen Tarif automatisch finden, schicken wir dein Foto einmal an den KI-Dienst
-          Anthropic. Er liest daraus Anbieter, Vertragsname und Monatsbetrag.
+          Anthropic. Er liest daraus Anbieter, Vertragsname, Kundennummer und Monatsbetrag.
         </p>
         <ul className="mt-3 flex flex-col gap-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
           <li>
@@ -1290,7 +1531,9 @@ function RechnungScan({
           <p className="mt-2 text-sm leading-6 text-zinc-700 dark:text-zinc-300">Stimmt das?</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
-              onClick={() => onKlasse(zustand.klasse, zustand.anbieter, zustand.konflikt)}
+              onClick={() =>
+                onKlasse(zustand.klasse, zustand.anbieter, zustand.konflikt, zustand.kundennummer)
+              }
               className={KNOPF_HAUPT}
             >
               Ja, das ist mein Tarif
@@ -1330,7 +1573,9 @@ function RechnungScan({
               <KlassenKnopf
                 key={klasse.tarif.slug}
                 klasse={klasse}
-                onClick={() => onKlasse(klasse, zustand.anbieter, zustand.konflikt)}
+                onClick={() =>
+                  onKlasse(klasse, zustand.anbieter, zustand.konflikt, zustand.kundennummer)
+                }
               />
             ))}
           </div>
@@ -1388,7 +1633,7 @@ function RechnungScan({
             // Der Anbieter aus der Rechnung wird übernommen — samt Warnung,
             // falls er nicht zu dem Netz passt, in dem gemessen wurde.
             zustand.art === "kein_tarif"
-              ? onAnbieterOhneTarif(zustand.anbieter, zustand.konflikt)
+              ? onAnbieterOhneTarif(zustand.anbieter, zustand.konflikt, zustand.kundennummer)
               : onAbbruch()
           }
           className={KNOPF_HAUPT}
