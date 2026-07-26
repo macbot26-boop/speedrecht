@@ -16,6 +16,7 @@ import type { ConnectionType, IasCompletedKpis } from "@/lib/ias/types";
 import { ANBIETER_SONSTIGE, FESTNETZ_ANBIETER } from "@/lib/netz/anbieter";
 import tarifDaten from "@/lib/tarife/tarife.generated.json";
 import { aufAnzeige, formatMbps } from "@/lib/tarife/anzeige.ts";
+import { angebote } from "@/lib/tarife/angebote.ts";
 import {
   tarifKlassen,
   tarifVorschlaege,
@@ -963,8 +964,15 @@ function TarifClaim({
 
         <div className={`rounded-xl border px-4 py-3 text-sm leading-6 ${urteilStil}`}>{claim}</div>
 
-        {/* Passt alles, gibt es nichts zu tun — dann bleibt der Schirm ruhig. */}
-        {ton !== "gut" && (
+        {/* Passt alles, gibt es nichts zu TUN — die Leiter bleibt weg. An ihre
+            Stelle tritt die Preis-Einordnung, und zwar nur, wenn ein Partner
+            eingerichtet ist: Ein Regal ohne Weg zum Vergleich wäre eine
+            Sackgasse, genau wie der tote Knopf, den die vierte Stufe vermeidet.
+
+            Nie beides auf einem Schirm — bei schlechtem Urteil steckt dasselbe
+            Regal schon in der vierten Stufe. Zwei Werbeblöcke untereinander
+            machten aus der Leiter eine Verkaufsstrecke. */}
+        {ton !== "gut" ? (
           <WieEsWeitergeht
             tarif={gewaehlt}
             gemessenMbps={gemessenMbps}
@@ -975,6 +983,16 @@ function TarifClaim({
             wechselPartner={wechselPartner}
             messungId={messungId}
           />
+        ) : (
+          wechselPartner && (
+            <PreisEinordnung
+              partner={wechselPartner}
+              tarif={gewaehlt}
+              gemessenMbps={gemessenMbps}
+              ton={ton}
+              messungId={messungId}
+            />
+          )
         )}
       </div>
     </div>
@@ -1127,6 +1145,58 @@ function WieEsWeitergeht({
 }
 
 /**
+ * Das Angebots-Regal — "was es heute für deine Geschwindigkeit gibt".
+ *
+ * Warum hier KEINE Ersparnis steht: Wir kennen den Preis des Nutzers nur aus
+ * seinem eigenen Blatt, und zwei von drei Verträgen tragen ein Blatt von vor
+ * 2025. Eine Differenz gegen so einen Listenpreis wäre keine Ersparnis,
+ * sondern Inflation — und eine Zahl, die wir nicht belegen können, ist hier
+ * ein UWG-Problem, kein Textproblem. Also stehen die Angebote da, und die
+ * Rechnung macht der Nutzer.
+ *
+ * Die drei Einschränkungen stehen bewusst UNTER dem Regal und nicht in einem
+ * Aufklapp-Bereich: Sie sind der Grund, warum die Preise hier höher aussehen
+ * können als beim Vergleich — wer sie erst nach dem Klick erführe, fühlte
+ * sich getäuscht. Als sichtbarer Satz sind sie dagegen ein Grund zu klicken.
+ */
+function AngebotsRegal({ tarif }: { tarif: Tarif }) {
+  const regal = angebote(TARIFE, tarif);
+  if (regal.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-1.5">
+        {regal.map((angebot) => (
+          <li
+            key={angebot.slug}
+            className="flex items-baseline justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950"
+          >
+            <span className="min-w-0 text-sm text-zinc-700 dark:text-zinc-300">
+              <span className="font-semibold text-zinc-900 dark:text-zinc-50">
+                {angebot.tarifname}
+              </span>{" "}
+              <span className="text-zinc-400">· {angebot.anbieter}</span>
+              <span className="block text-xs text-zinc-500">
+                normalerweise {formatMbps(angebot.download_normal_mbps)} Mbit/s
+              </span>
+            </span>
+            <span className="shrink-0 text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+              {preisFormat(angebot.monatspreis_eur as number)} €
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-[11px] leading-4 text-zinc-500 dark:text-zinc-500">
+        Listenpreise aus den offiziellen Produktinformationsblättern der Anbieter, ohne
+        Endgeräte — der Router kommt überall obendrauf. Beim Vergleich liegen die
+        Aktionspreise oft darunter. Ob es an deiner Adresse verfügbar ist, prüft der
+        Vergleich.
+      </p>
+    </div>
+  );
+}
+
+/**
  * Der bezahlte Weg — und warum er als LETZTE Stufe steht.
  *
  * An dieser Stelle verdient das Produkt sein Geld. Genau deshalb steht der
@@ -1171,27 +1241,102 @@ function WechselKasten({
       Bestätigt die offizielle Messung den Mangel, darfst du die Rechnung kürzen und
       fristlos kündigen. Ein Wechsel lohnt vor allem, wenn dir das zu viel Aufwand ist oder
       dein Vertrag ohnehin ausläuft.
-      <div className="mt-2 flex flex-col gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-3 dark:border-zinc-800 dark:bg-zinc-950">
-        {/* Kein rel="noreferrer": Der Verweis läuft über unsere eigene Route
-            zum Partner, und Partnerprogramme prüfen die verweisende Domain
-            gegen Betrug. Ohne Referrer stünde die Provision in Frage. Die
-            Browser-Voreinstellung schickt ohnehin nur die Domain, nicht Pfad
-            und Parameter. */}
-        <a
-          href={ziel}
-          target="_blank"
-          rel="noopener"
-          className="text-sm font-semibold text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
-        >
-          Angebote vergleichen bei {partner} →
-        </a>
-        <p className="text-[11px] leading-4 text-zinc-500 dark:text-zinc-500">
-          <span className="font-bold uppercase tracking-wider">Anzeige</span> · Kommt darüber
-          ein Vertrag zustande, bekommen wir eine Provision. Für dich bleibt der Preis
-          gleich; auf das Messergebnis hat sie keinen Einfluss.
-        </p>
+      {/* Das Regal steht VOR dem Verweis: Wer schon sieht, was es für seine
+          Geschwindigkeit gibt, klickt informiert weiter statt ins Ungewisse.
+          Umgekehrt wäre der Verweis ein blanker Werbeknopf mit einer
+          Preisliste als Nachschlag. */}
+      <div className="mt-2">
+        <AngebotsRegal tarif={tarif} />
       </div>
+      <PartnerVerweis partner={partner} ziel={ziel} />
     </>
+  );
+}
+
+/**
+ * Verweis auf den Partner samt Werbekennzeichnung.
+ *
+ * Steht als EINE Komponente da, weil derselbe Verweis an zwei Stellen
+ * erscheint (vierte Stufe bei schlechtem Urteil, Preis-Einordnung bei gutem).
+ * Zwei Abschriften desselben Textes laufen mit der Zeit auseinander — und
+ * ausgerechnet hier hinge dann an einer Stelle eine veraltete oder fehlende
+ * Kennzeichnung. § 5a UWG verlangt sie dort, wo geklickt wird.
+ */
+function PartnerVerweis({ partner, ziel }: { partner: string; ziel: string }) {
+  return (
+    <div className="mt-2 flex flex-col gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-3 dark:border-zinc-800 dark:bg-zinc-950">
+      {/* Kein rel="noreferrer": Der Verweis läuft über unsere eigene Route
+          zum Partner, und Partnerprogramme prüfen die verweisende Domain
+          gegen Betrug. Ohne Referrer stünde die Provision in Frage. Die
+          Browser-Voreinstellung schickt ohnehin nur die Domain, nicht Pfad
+          und Parameter. */}
+      <a
+        href={ziel}
+        target="_blank"
+        rel="noopener"
+        className="text-sm font-semibold text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+      >
+        Angebote vergleichen bei {partner} →
+      </a>
+      <p className="text-[11px] leading-4 text-zinc-500 dark:text-zinc-500">
+        <span className="font-bold uppercase tracking-wider">Anzeige</span> · Kommt darüber
+        ein Vertrag zustande, bekommen wir eine Provision. Für dich bleibt der Preis
+        gleich; auf das Messergebnis hat sie keinen Einfluss.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Das Regal bei GUTEM Urteil — eine Einordnung, keine Aufforderung.
+ *
+ * Der Founder hatte einen Wechsel-Vorschlag bei gutem Urteil zunächst
+ * abgelehnt, und der Grund galt: Ein generischer "vergleichen"-Knopf unter
+ * "alles in Ordnung" ist blanke Werbung. Ein benanntes Regal ist etwas
+ * anderes — es beantwortet eine Frage, die der Nutzer sich ohnehin stellt,
+ * mit Zahlen aus seinem eigenen Vertrag.
+ *
+ * Der erste Satz muss das Urteil BESTÄTIGEN, bevor Preise kommen. Ohne ihn
+ * läse sich das Regal als Widerruf ("passt zu deinem Tarif — aber schau mal
+ * hier"), und dann steht die Glaubwürdigkeit des Urteils zur Debatte, an der
+ * das ganze Produkt hängt.
+ */
+function PreisEinordnung({
+  partner,
+  tarif,
+  gemessenMbps,
+  ton,
+  messungId,
+}: {
+  partner: string;
+  tarif: Tarif;
+  gemessenMbps: number;
+  ton: UrteilTon;
+  messungId: string | null;
+}) {
+  if (angebote(TARIFE, tarif).length === 0) return null;
+
+  const ziel = klickPfad({
+    anbieter: tarif.anbieter,
+    tarifSlug: tarif.slug,
+    urteil: ton,
+    downloadMbps: aufAnzeige(gemessenMbps),
+    messungId,
+  });
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+        Was es heute sonst gibt
+      </div>
+      <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+        An deiner Leitung ist nichts zu beanstanden. Falls dich trotzdem interessiert, wie
+        dein Vertrag preislich steht: Diese Verträge sagen mindestens so viel zu wie{" "}
+        {tarif.tarifname}.
+      </p>
+      <AngebotsRegal tarif={tarif} />
+      <PartnerVerweis partner={partner} ziel={ziel} />
+    </div>
   );
 }
 
