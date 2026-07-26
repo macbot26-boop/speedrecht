@@ -27,95 +27,18 @@
 
 import tarifDaten from "@/lib/tarife/tarife.generated.json";
 import { rechnungAbgleichen } from "@/lib/tarife/rechnung-abgleich";
-import { uploadPostAblehnung } from "@/lib/herkunft";
-import { ratenBegrenzer, ratenSchluessel } from "@/lib/rate-limit";
-import { ipAusRequest } from "@/lib/netz/server";
-import { MAX_UPLOAD_BYTES, dateiPruefen } from "@/lib/rechnung/dateipruefung";
-import { rechnungLesen, scanVerfuegbar } from "@/lib/rechnung/extraktion";
-
-// Etwas Luft über der reinen Dateigröße für den Multipart-Rahmen.
-const MAX_ANFRAGE_BYTES = MAX_UPLOAD_BYTES + 64 * 1024;
-
-// ZWEI Bremsen, weil nicht jede Anfrage gleich viel kostet.
-//
-// Die eine zählt alles, was hereinkommt, und hält bloßes Fluten ab. Die
-// andere zählt nur, was tatsächlich bis zum bezahlten Aufruf kommt.
-//
-// Der Unterschied ist keine Feinheit: Läge nur eine Bremse vorn, würde jemand,
-// der versehentlich das falsche Bild erwischt, seine Scans verbrauchen, ohne
-// dass uns das einen Cent gekostet hätte — bestraft würde der Ungeschickte,
-// nicht der Angreifer.
-const ANFRAGEN_PRO_STUNDE = 40;
-const SCANS_PRO_STUNDE = 8;
-const STUNDE = 60 * 60 * 1000;
-
-const anfrageBremse = ratenBegrenzer(ANFRAGEN_PRO_STUNDE, STUNDE);
-const scanBremse = ratenBegrenzer(SCANS_PRO_STUNDE, STUNDE);
-
-const zuVieleAnfragen = () =>
-  Response.json(
-    { error: "Zu viele Versuche. Bitte in einer Stunde noch einmal probieren." },
-    { status: 429 }
-  );
-
-/** Klartext für die Fälle, in denen die Datei gar nicht erst brauchbar ist. */
-const DATEI_MELDUNG: Record<string, string> = {
-  leer: "Die Datei ist leer.",
-  zu_gross: "Die Datei ist zu groß.",
-  unbekannter_typ: "Das ist kein Foto und kein PDF.",
-  zu_viele_seiten: "Das PDF hat zu viele Seiten — bitte nur die Rechnung schicken.",
-};
+import { leseFehlerAntwort, rechnungAnfrageAnnehmen } from "@/lib/rechnung/anfrage";
+import { rechnungLesen } from "@/lib/rechnung/extraktion";
 
 export async function POST(request: Request) {
-  const ablehnung = uploadPostAblehnung(request, MAX_ANFRAGE_BYTES);
-  if (ablehnung) return ablehnung;
+  // Herkunft, Ratenbremsen und Dateiprüfung liegen in `anfrage.ts`, gemeinsam
+  // mit `/api/rechnung/name` — damit beide Routen in denselben Eimer zählen,
+  // solange sie im selben Prozess laufen (Grenzen der Bremse: dort im Kopf).
+  const anfrage = await rechnungAnfrageAnnehmen(request);
+  if (!anfrage.ok) return anfrage.antwort;
 
-  // Nur zur Ratenbegrenzung, flüchtig im Arbeitsspeicher — die IP wird weder
-  // gespeichert noch geloggt.
-  const schluessel = ratenSchluessel(ipAusRequest(request));
-  if (anfrageBremse(schluessel)) return zuVieleAnfragen();
-
-  if (!scanVerfuegbar()) {
-    return Response.json({ error: "Der Scan ist gerade nicht verfügbar." }, { status: 503 });
-  }
-
-  let datei: File | null = null;
-  try {
-    const formular = await request.formData();
-    const wert = formular.get("datei");
-    if (wert instanceof File) datei = wert;
-  } catch {
-    return Response.json({ error: "Anfrage nicht lesbar." }, { status: 400 });
-  }
-  if (!datei) return Response.json({ error: "Keine Datei dabei." }, { status: 400 });
-
-  const bytes = new Uint8Array(await datei.arrayBuffer());
-  const pruefung = dateiPruefen(bytes);
-  if (!pruefung.ok) {
-    return Response.json(
-      { error: DATEI_MELDUNG[pruefung.grund] ?? "Datei nicht verwendbar.", grund: pruefung.grund },
-      { status: 422 }
-    );
-  }
-
-  // Ab hier wird es kostenpflichtig — erst jetzt zählt der Scan.
-  if (scanBremse(schluessel)) return zuVieleAnfragen();
-
-  const gelesen = await rechnungLesen(bytes, pruefung.typ);
-  if (!gelesen.ok) {
-    // Was der Nutzer selbst beheben kann (422), von einer Störung auf unserer
-    // Seite (503) trennen — sonst versucht er es gar nicht erst noch einmal.
-    const behebbar = gelesen.fehler === "unlesbar" || gelesen.fehler === "abgelehnt";
-    return Response.json(
-      {
-        error: behebbar
-          ? "Die Datei konnte nicht gelesen werden. Bitte noch einmal fotografieren."
-          : "Der Scan ist gerade gestört. Bitte später noch einmal versuchen.",
-        grund: gelesen.fehler,
-      },
-      { status: behebbar ? 422 : 503 }
-    );
-  }
+  const gelesen = await rechnungLesen(anfrage.bytes, anfrage.typ);
+  if (!gelesen.ok) return leseFehlerAntwort(gelesen.fehler);
 
   const { angaben } = gelesen;
   if (!angaben.istRechnung) {

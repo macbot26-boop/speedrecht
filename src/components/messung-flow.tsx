@@ -714,6 +714,10 @@ function TarifClaim({
   // gehalten: Die Kundennummer sagt nichts über den Tarif und darf an keiner
   // Stelle in die Tarifbestimmung geraten.
   const [kundennummerAusRechnung, setKundennummerAusRechnung] = useState<string | null>(null);
+  // Das gescannte Rechnungsbild, nur im Arbeitsspeicher dieses Tabs. Es geht
+  // NUR dann ein zweites Mal hinaus, wenn der Nutzer beim Brief ausdrücklich
+  // einwilligt; beim Schließen der Seite ist es weg.
+  const [rechnungsBild, setRechnungsBild] = useState<File | null>(null);
 
   // "ändern" im Ergebnis fängt von vorn an; "zurück" aus der Namensfrage
   // behält dagegen die geöffnete Vollliste — wer sich durch 66 Vodafone-Knöpfe
@@ -723,8 +727,14 @@ function TarifClaim({
     setNamensWahl(null);
     setAlleZeigen(false);
     setScanOffen(false);
+    // NUR was die Tarifbestimmung betrifft, wird zurückgesetzt. Kundennummer
+    // und Rechnungsbild bleiben: Sie sind Tatsachen über die Rechnung des
+    // Nutzers und ändern sich nicht dadurch, dass er den Tarif korrigiert.
+    // Würden sie mitfliegen, müsste jemand, der einmal den falschen Vertrag
+    // erwischt hat, für den Brief dieselbe Rechnung noch einmal fotografieren.
+    // Das Bild verlässt das Gerät dabei nicht — es geht nur bei ausdrücklicher
+    // Einwilligung ein zweites Mal hinaus.
     setAusRechnung(null);
-    setKundennummerAusRechnung(null);
   };
   const zurueckAusNamensfrage = () => setNamensWahl(null);
 
@@ -762,6 +772,7 @@ function TarifClaim({
           setKundennummerAusRechnung(gelesenKundennummer);
           setScanOffen(false);
         }}
+        onBild={setRechnungsBild}
         onAbbruch={() => setScanOffen(false)}
       />
     );
@@ -952,6 +963,7 @@ function TarifClaim({
             gemessenMbps={gemessenMbps}
             connection={connection}
             kundennummerAusRechnung={kundennummerAusRechnung}
+            rechnungsBild={rechnungsBild}
           />
         )}
       </div>
@@ -977,11 +989,13 @@ function WieEsWeitergeht({
   gemessenMbps,
   connection,
   kundennummerAusRechnung,
+  rechnungsBild,
 }: {
   tarif: Tarif;
   gemessenMbps: number;
   connection: ConnectionType | null;
   kundennummerAusRechnung: string | null;
+  rechnungsBild: File | null;
 }) {
   // Eine einzelne Messung an einem Messtag. Welcher Kalendertag das ist,
   // ändert am Ergebnis nichts, solange es nur einer ist — der feste Schlüssel
@@ -1027,6 +1041,7 @@ function WieEsWeitergeht({
             gemessenMbps={gemessenMbps}
             connection={connection}
             kundennummerAusRechnung={kundennummerAusRechnung}
+            rechnungsBild={rechnungsBild}
           />
         </Stufe>
         {/* "Dann" verweist auf die Stufe davor — und davor steht jetzt immer
@@ -1112,17 +1127,24 @@ function BriefKasten({
   gemessenMbps,
   connection,
   kundennummerAusRechnung,
+  rechnungsBild,
 }: {
   tarif: Tarif;
   gemessenMbps: number;
   connection: ConnectionType | null;
   kundennummerAusRechnung: string | null;
+  rechnungsBild: File | null;
 }) {
   const [offen, setOffen] = useState(false);
   const [kundennummer, setKundennummer] = useState(kundennummerAusRechnung ?? "");
   const [name, setName] = useState("");
   const [kopiert, setKopiert] = useState(false);
   const [hinweis, setHinweis] = useState<string | null>(null);
+  // "angeboten" heißt: Es liegt ein Bild vor und der Nutzer hat noch nicht
+  // entschieden. Erst "einverstanden" schickt es hinaus.
+  const [namensScan, setNamensScan] = useState<
+    "angeboten" | "laeuft" | "fertig" | "leer" | "fehler" | "abgelehnt"
+  >("angeboten");
 
   // Erst beim ersten Rendern im Browser bestimmt: Welcher Kalendertag "heute"
   // ist, hängt an der Zeitzone des Geräts — dieselbe Überlegung wie bei
@@ -1159,6 +1181,36 @@ function BriefKasten({
       // Ohne Rechte auf die Zwischenablage bleibt der Text sichtbar — er steht
       // ohnehin direkt darüber und lässt sich von Hand markieren.
       setHinweis("Kopieren hat nicht geklappt — markier den Text oben und kopier ihn von Hand.");
+    }
+  };
+
+  /**
+   * Holt den Namen aus dem Rechnungsbild — erst nach ausdrücklicher
+   * Einwilligung, und über eine eigene Route mit eigenem Schema, die
+   * ausschließlich den Namen kennt.
+   */
+  const namenHolen = async () => {
+    if (!rechnungsBild) return;
+    setNamensScan("laeuft");
+    const formular = new FormData();
+    formular.append("datei", rechnungsBild);
+    try {
+      const antwort = await fetch("/api/rechnung/name", { method: "POST", body: formular });
+      const daten: unknown = await antwort.json().catch(() => null);
+      const gelesen =
+        antwort.ok && typeof daten === "object" && daten !== null
+          ? (daten as { name?: unknown }).name
+          : null;
+      if (typeof gelesen === "string" && gelesen) {
+        setName(gelesen);
+        setNamensScan("fertig");
+      } else {
+        // Kein Name lesbar ist kein Fehler — die Rechnung führt ihn vielleicht
+        // gar nicht sichtbar. Der Nutzer tippt ihn dann selbst.
+        setNamensScan(antwort.ok ? "leer" : "fehler");
+      }
+    } catch {
+      setNamensScan("fehler");
     }
   };
 
@@ -1216,6 +1268,39 @@ function BriefKasten({
           platzhalter="für die Unterschrift"
         />
       </div>
+
+      {/* Eigene Einwilligung an der Stelle, wo der Zweck entsteht: Der Brief
+          braucht eine Unterschrift, der Tarif-Scan brauchte den Namen nicht.
+          Erscheint nur, wenn ein Bild vorliegt und noch kein Name im Feld
+          steht — wer selbst getippt hat, wird nicht mehr gefragt. */}
+      {rechnungsBild && !name.trim() && namensScan !== "abgelehnt" && (
+        <div className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-3 text-xs leading-5 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+          {namensScan === "laeuft" ? (
+            <span>Wir lesen den Namen …</span>
+          ) : namensScan === "leer" ? (
+            <span>Auf der Rechnung war kein Name lesbar — bitte trag ihn selbst ein.</span>
+          ) : namensScan === "fehler" ? (
+            <span>Das hat nicht geklappt — bitte trag den Namen selbst ein.</span>
+          ) : (
+            <>
+              <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                Namen aus deiner Rechnung übernehmen?
+              </span>{" "}
+              Dafür schicken wir dein Rechnungsbild noch einmal an den KI-Dienst Anthropic. Er
+              liest daraus nur den Namen — sonst nichts. Es gelten dieselben Regeln wie beim
+              Tarif-Scan: nicht gespeichert, nicht zum Training verwendet.
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button onClick={() => void namenHolen()} className={KNOPF_NEBEN}>
+                  Einverstanden
+                </button>
+                <button onClick={() => setNamensScan("abgelehnt")} className={KNOPF_NEBEN}>
+                  Lieber selbst tippen
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Der Empfänger steht offen da — auch dann, wenn wir keinen haben. Eine
           erfundene Adresse wäre schlimmer als eine sichtbare Lücke. */}
@@ -1360,6 +1445,7 @@ function RechnungScan({
   netzAnbieter,
   onKlasse,
   onAnbieterOhneTarif,
+  onBild,
   onAbbruch,
 }: {
   /** Anbieter aus der IP-Erkennung — nur für die Konflikt-Warnung. */
@@ -1375,6 +1461,12 @@ function RechnungScan({
     konflikt: string | null,
     kundennummer: string | null
   ) => void;
+  /**
+   * Das gelesene Bild — bleibt für die Sitzung auf dem Gerät, damit der
+   * Kulanz-Brief den Namen daraus holen kann, ohne dass der Nutzer dieselbe
+   * Rechnung ein zweites Mal fotografieren muss.
+   */
+  onBild: (datei: File) => void;
   onAbbruch: () => void;
 }) {
   type Zustand = { art: "einwilligung" } | { art: "laeuft" } | ScanSchritt;
@@ -1399,7 +1491,14 @@ function RechnungScan({
     try {
       const antwort = await fetch("/api/rechnung", { method: "POST", body: formular });
       const daten: unknown = await antwort.json().catch(() => null);
-      setZustand(scanSchritt(antwort.status, daten, netzAnbieter));
+      const schritt = scanSchritt(antwort.status, daten, netzAnbieter);
+      // Nur wenn das Bild tatsächlich als Rechnung gelesen wurde, ist es später
+      // etwas wert. Es bleibt AUF DEM GERÄT und wird nur dann ein zweites Mal
+      // verschickt, wenn der Nutzer beim Brief ausdrücklich einwilligt.
+      if (schritt.art === "bestaetigen" || schritt.art === "namenswahl" || schritt.art === "kein_tarif") {
+        onBild(datei);
+      }
+      setZustand(schritt);
     } catch {
       // Status 0 heißt für scanSchritt: Die Anfrage kam gar nicht durch.
       setZustand(scanSchritt(0, null, netzAnbieter));
@@ -1464,10 +1563,19 @@ function RechnungScan({
             <span className="font-semibold text-zinc-800 dark:text-zinc-200">nicht</span> zum
             Training von KI verwendet.
           </li>
+          {/* Der Satz hieß bis Phase 5 "Dein Name und deine Anschrift werden
+              nicht gelesen." Für DIESEN Scan stimmt das weiterhin — sein
+              Schema hat kein Namensfeld. Der Kulanz-Brief kann den Namen aber
+              über eine eigene Route und eine eigene Einwilligung holen, und
+              wer den alten Satz gelesen hat, würde sich dort getäuscht fühlen.
+              Deshalb getrennt: die Anschrift gar nicht, der Name erst auf
+              ausdrückliche Nachfrage. */}
           <li>
             <span className="font-semibold text-zinc-800 dark:text-zinc-200">
-              Dein Name und deine Anschrift werden nicht gelesen.
-            </span>
+              Deine Anschrift wird nicht gelesen.
+            </span>{" "}
+            Nach deinem Namen fragen wir erst, wenn du einen Brief an deinen Anbieter schreiben
+            willst — und dann noch einmal ausdrücklich.
           </li>
           <li>
             Was dein Vertrag an Tempo zusichert, kommt{" "}
