@@ -8,6 +8,16 @@
       "port": 3000
     },
     {
+      "_kommentar": "Wie 'speedrecht', aber mit eingeschaltetem Wechsel-Vorschlag (Phase 6). Das Ziel ist example.com — die von der IANA reservierte Beispiel-Domain, nie mit einem echten Partner zu verwechseln. So lässt sich der bezahlte Weg durchklicken, bevor es ein Partnerkonto gibt.",
+      "name": "speedrecht-testpartner",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "WECHSEL_PARTNER_NAME=Testpartner WECHSEL_PARTNER_URL='https://example.com/dsl-vergleich?subid={klick_id}&von={anbieter}&ist={mbps}' npm run dev"
+      ],
+      "port": 3000
+    },
+    {
       "name": "messwerkstatt",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["start", "--prefix", "prototype"],
