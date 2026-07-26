@@ -7,7 +7,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { klickAngabenLesen } from "./klick.ts";
+import { KLICK_PFAD, klickAngabenLesen, klickPfad } from "./klick.ts";
 
 const daten = JSON.parse(
   await readFile(new URL("../tarife/tarife.generated.json", import.meta.url), "utf8")
@@ -96,6 +96,45 @@ test("jeder echte Slug der Tarif-Datenbank wird angenommen", () => {
       `Slug abgewiesen: ${tarif.slug}`
     );
   }
+});
+
+// ---------------------------------------------------------------------------
+// Hin und zurück — schreibende und lesende Seite müssen dieselben Namen führen
+// ---------------------------------------------------------------------------
+
+const hinUndZurueck = (angaben) =>
+  klickAngabenLesen(new URL(klickPfad(angaben), "https://speedrecht.test").searchParams);
+
+test("jede Angabe kommt unverändert wieder an", () => {
+  // Der Fehler, gegen den das steht: Benennt jemand den Parameter auf einer
+  // Seite um, landet beim Zählen still eine leere Zeile — während der Nutzer
+  // ganz normal beim Partner ankommt. Niemand würde es merken.
+  const angaben = {
+    anbieter: "1&1",
+    tarifSlug: "bb-dsl-16-mvl-20240201",
+    urteil: "unter_norm",
+    downloadMbps: 12.34,
+    messungId: "3f2b1c9a-0000-4000-8000-abcdefabcdef",
+  };
+  assert.deepEqual(hinUndZurueck(angaben), angaben);
+});
+
+test("auch ohne jede Angabe bleibt der Verweis brauchbar", () => {
+  const leer = {
+    anbieter: null,
+    tarifSlug: null,
+    urteil: null,
+    downloadMbps: null,
+    messungId: null,
+  };
+  assert.equal(klickPfad(leer), KLICK_PFAD, "kein Fragezeichen ohne Parameter");
+  assert.deepEqual(hinUndZurueck(leer), leer);
+});
+
+test("eine gemessene Null überlebt den Weg", () => {
+  // `if (mbps)` statt `if (mbps !== null)` hätte die 0 verschluckt — und
+  // ausgerechnet die völlig tote Leitung wäre in der Auswertung verschwunden.
+  assert.equal(hinUndZurueck({ downloadMbps: 0 }).downloadMbps, 0);
 });
 
 test("nur eine echte Messungs-Nummer", () => {
