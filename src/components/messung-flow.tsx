@@ -15,7 +15,7 @@ import {
 import type { ConnectionType, IasCompletedKpis } from "@/lib/ias/types";
 import { ANBIETER_SONSTIGE, FESTNETZ_ANBIETER } from "@/lib/netz/anbieter";
 import tarifDaten from "@/lib/tarife/tarife.generated.json";
-import { formatMbps } from "@/lib/tarife/anzeige.ts";
+import { aufAnzeige, formatMbps } from "@/lib/tarife/anzeige.ts";
 import {
   tarifKlassen,
   tarifVorschlaege,
@@ -34,6 +34,7 @@ import { scanSchritt, type ScanSchritt } from "@/lib/rechnung/scan-fluss.ts";
 import { briefBauen, type Verbindung } from "@/lib/brief/text.ts";
 import { anschriftZeilen, kontaktFuer } from "@/lib/brief/kontakte.ts";
 import { briefHtml, mailtoUrl } from "@/lib/brief/versand.ts";
+import { klickPfad } from "@/lib/wechsel/klick.ts";
 
 // Statische Tarif-Tabelle (aus den Produktinformationsblättern erzeugt).
 // Der JSON-Import ist strukturell die TarifDaten-Form.
@@ -97,7 +98,7 @@ function zellularErkannt(): boolean {
 // Anzeige-Genauigkeit kommt aus @/lib/tarife/anzeige — dieselbe Quelle, auf
 // der Urteil und Tarif-Bündelung rechnen.
 
-export function MessungFlow() {
+export function MessungFlow({ wechselPartner }: { wechselPartner: string | null }) {
   const { phase, rttMs, downloadMbps, uploadMbps, result, error, start } =
     useIasMeasurement();
   const [connection, setConnection] = useState<ConnectionType | null>(null);
@@ -347,6 +348,8 @@ export function MessungFlow() {
               : null
           }
           connection={connection}
+          wechselPartner={wechselPartner}
+          messungId={savedId}
         />
 
         {/* Ehrlichkeits-Labels — Produktgesetz, nicht verhandelbar */}
@@ -691,10 +694,14 @@ function TarifClaim({
   anbieter,
   gemessenMbps,
   connection,
+  wechselPartner,
+  messungId,
 }: {
   anbieter: string | null;
   gemessenMbps: number | null;
   connection: ConnectionType | null;
+  wechselPartner: string | null;
+  messungId: string | null;
 }) {
   const [gewaehlt, setGewaehlt] = useState<Tarif | null>(null);
   const [alleZeigen, setAlleZeigen] = useState(false);
@@ -964,6 +971,9 @@ function TarifClaim({
             connection={connection}
             kundennummerAusRechnung={kundennummerAusRechnung}
             rechnungsBild={rechnungsBild}
+            ton={ton}
+            wechselPartner={wechselPartner}
+            messungId={messungId}
           />
         )}
       </div>
@@ -990,12 +1000,18 @@ function WieEsWeitergeht({
   connection,
   kundennummerAusRechnung,
   rechnungsBild,
+  ton,
+  wechselPartner,
+  messungId,
 }: {
   tarif: Tarif;
   gemessenMbps: number;
   connection: ConnectionType | null;
   kundennummerAusRechnung: string | null;
   rechnungsBild: File | null;
+  ton: UrteilTon;
+  wechselPartner: string | null;
+  messungId: string | null;
 }) {
   // Eine einzelne Messung an einem Messtag. Welcher Kalendertag das ist,
   // ändert am Ergebnis nichts, solange es nur einer ist — der feste Schlüssel
@@ -1059,6 +1075,17 @@ function WieEsWeitergeht({
           der Bundesnetzagentur: ein Desktop-Programm, 3 Messtage, je 10 Messungen. Unsere
           Messung zeigt dir nur, ob sich der Aufwand lohnt.
         </Stufe>
+        {wechselPartner && (
+          <Stufe nummer={++nummer} titel="Oder den Anbieter wechseln">
+            <WechselKasten
+              partner={wechselPartner}
+              tarif={tarif}
+              gemessenMbps={gemessenMbps}
+              ton={ton}
+              messungId={messungId}
+            />
+          </Stufe>
+        )}
       </ol>
 
       <details className="group">
@@ -1096,6 +1123,75 @@ function WieEsWeitergeht({
         </div>
       </details>
     </div>
+  );
+}
+
+/**
+ * Der bezahlte Weg — und warum er als LETZTE Stufe steht.
+ *
+ * An dieser Stelle verdient das Produkt sein Geld. Genau deshalb steht der
+ * Haken zuerst: Wer den Mangel offiziell nachweist, darf die Rechnung kürzen
+ * und fristlos kündigen (§ 57 Abs. 4 TKG). Ein Wechsel ist dafür kein Ersatz,
+ * sondern die Wahl derer, denen der Aufwand zu groß ist — oder deren Vertrag
+ * ohnehin ausläuft.
+ *
+ * Die Reihenfolge auf dem Schirm ist damit keine Geschmacksfrage: Wir
+ * verdienen am Wechsel, also muss der kostenlose Weg davor stehen. Sonst wäre
+ * die Leiter eine Verkaufsstrecke, und die Glaubwürdigkeit ist hier das
+ * Produkt.
+ *
+ * Die Werbekennzeichnung steht direkt am Verweis — § 5a UWG verlangt, den
+ * kommerziellen Zweck erkennbar zu machen, und zwar dort, wo geklickt wird.
+ */
+function WechselKasten({
+  partner,
+  tarif,
+  gemessenMbps,
+  ton,
+  messungId,
+}: {
+  partner: string;
+  tarif: Tarif;
+  gemessenMbps: number;
+  ton: UrteilTon;
+  messungId: string | null;
+}) {
+  const ziel = klickPfad({
+    anbieter: tarif.anbieter,
+    tarifSlug: tarif.slug,
+    urteil: ton,
+    // Bewusst der ANGEZEIGTE Wert: In der Zeile soll die Zahl stehen, die der
+    // Nutzer vor sich hatte, als er geklickt hat.
+    downloadMbps: aufAnzeige(gemessenMbps),
+    messungId,
+  });
+
+  return (
+    <>
+      Bestätigt die offizielle Messung den Mangel, darfst du die Rechnung kürzen und
+      fristlos kündigen. Ein Wechsel lohnt vor allem, wenn dir das zu viel Aufwand ist oder
+      dein Vertrag ohnehin ausläuft.
+      <div className="mt-2 flex flex-col gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-3 dark:border-zinc-800 dark:bg-zinc-950">
+        {/* Kein rel="noreferrer": Der Verweis läuft über unsere eigene Route
+            zum Partner, und Partnerprogramme prüfen die verweisende Domain
+            gegen Betrug. Ohne Referrer stünde die Provision in Frage. Die
+            Browser-Voreinstellung schickt ohnehin nur die Domain, nicht Pfad
+            und Parameter. */}
+        <a
+          href={ziel}
+          target="_blank"
+          rel="noopener"
+          className="text-sm font-semibold text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+        >
+          Angebote vergleichen bei {partner} →
+        </a>
+        <p className="text-[11px] leading-4 text-zinc-500 dark:text-zinc-500">
+          <span className="font-bold uppercase tracking-wider">Anzeige</span> · Kommt darüber
+          ein Vertrag zustande, bekommen wir eine Provision. Für dich bleibt der Preis
+          gleich; auf das Messergebnis hat sie keinen Einfluss.
+        </p>
+      </div>
+    </>
   );
 }
 

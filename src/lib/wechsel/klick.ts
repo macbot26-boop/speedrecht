@@ -21,6 +21,9 @@ export interface KlickAngaben {
   messungId: string | null;
 }
 
+/** Die Route, die zählt und weiterleitet. */
+export const KLICK_PFAD = "/api/wechsel/weiter";
+
 const URTEILE: ReadonlySet<string> = new Set<UrteilTon>(["gut", "unter_norm", "unter_min"]);
 
 /**
@@ -63,4 +66,28 @@ export function klickAngabenLesen(params: URLSearchParams): KlickAngaben {
         : null,
     messungId: messungRoh && UUID_MUSTER.test(messungRoh) ? messungRoh : null,
   };
+}
+
+/**
+ * Baut die Adresse des Klick-Verweises — die Gegenrichtung zu
+ * `klickAngabenLesen`.
+ *
+ * Beide Seiten stehen bewusst in DERSELBEN Datei: Wer den Parameter `tarif`
+ * hier in `tarif_slug` umbenennt, sieht die lesende Seite direkt daneben. Ein
+ * Test schickt jede Angabe einmal hin und zurück — liefen die Namen
+ * auseinander, käme beim Zählen still eine leere Zeile an, während der Nutzer
+ * ganz normal beim Partner landet.
+ *
+ * Leere Angaben werden weggelassen statt leer gesetzt: Ein `mbps=` ohne Wert
+ * ist keine Angabe, sondern Rauschen in der Adresse.
+ */
+export function klickPfad(angaben: KlickAngaben): string {
+  const params = new URLSearchParams();
+  if (angaben.anbieter) params.set("anbieter", angaben.anbieter);
+  if (angaben.tarifSlug) params.set("tarif", angaben.tarifSlug);
+  if (angaben.urteil) params.set("urteil", angaben.urteil);
+  if (angaben.downloadMbps !== null) params.set("mbps", String(angaben.downloadMbps));
+  if (angaben.messungId) params.set("messung", angaben.messungId);
+  const query = params.toString();
+  return query ? `${KLICK_PFAD}?${query}` : KLICK_PFAD;
 }
