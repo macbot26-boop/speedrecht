@@ -344,7 +344,90 @@ export function tabellenFinden(text) {
   return tabellen;
 }
 
-/** Dokumenttitel: erste echte Zeile nach dem Blatt-Kopf. */
+/**
+ * Zeilen unter dem Titel, die zum Seitenaufbau gehören und nicht zum Namen.
+ * Sie beenden den Titel — alles andere direkt darunter ist seine Fortsetzung.
+ */
+const KEIN_NAMENSTEIL = [
+  // "Fesnetz" ist ein Tippfehler, der in echten Blättern vorkommt.
+  /^Fest?netz$/i,
+  /^Vermarkt(?:ung|et)\s+seit\b/i,
+  /^Stand\b/i,
+  /^Produktinformationsblatt/i,
+  /Transparenzverordnung/i,
+];
+
+function istSeitenmoebel(zeile) {
+  // Die Ankreuzzeile der Leistungsarten ("☑ Internet ☑ Telefonie □ TV").
+  if (/Internet/i.test(zeile) && /Telefonie/i.test(zeile)) return true;
+  return KEIN_NAMENSTEIL.some((muster) => muster.test(zeile));
+}
+
+// Wie viele Zeilen ein Titel höchstens umbricht. Beobachtet ist genau eine;
+// zwei lassen Luft, ohne dass ein neues Blattformat den halben Fließtext in
+// den Vertragsnamen zieht.
+const MAX_UMBRUCH_ZEILEN = 2;
+
+// Eine Überschriftenzeile ist kurz. Was länger ist, ist Fließtext.
+const MAX_ZEILEN_LAENGE = 80;
+
+/**
+ * Der Jahrgang, mit dem Vodafone seine Blätter voneinander abgrenzt — als
+ * blanke Jahreszahl ("… (OXG) 2025"), mit Monat davor ("… Kabel Nov 2023")
+ * oder allein auf der Folgezeile.
+ *
+ * Er gehört NICHT in den Vertragsnamen, und zwar aus einem messbaren Grund:
+ * Der Rechnungs-Abgleich verlangt, dass jede Zahl des Datenbank-Namens auch
+ * auf der Rechnung vorkommt (siehe `punkte` in rechnung-abgleich.ts). Der
+ * Jahrgang steht aber auf dem BLATT, nicht auf der Rechnung des Kunden. Er
+ * kann darum nur schaden: Nennt die Rechnung ihn nicht, fällt der Vertrag
+ * hart durch; nennt sie ihn doch, stört sein Fehlen im Namen nicht, weil
+ * überzählige Zahlen auf der Rechnung erlaubt sind. Beide Richtungen
+ * durchgerechnet: ohne Jahrgang im Namen werden 53 von 53 Altfällen
+ * gefunden, mit Jahrgang nur 27.
+ *
+ * Verloren geht dabei nichts, denn die Datenbank führt den Jahrgang bereits
+ * als eigenes Feld `versionsstand` — im Namen war er Dublette.
+ *
+ * Der Jahresbereich ist bewusst eng. Die Namen tragen auch Geschwindigkeiten
+ * als vierstellige Zahlen ("DSL Bandbreite 2000", "CableMax 1000"); die
+ * liegen bei 1000/2000/3000/6000/25000 und damit sämtlich unterhalb von
+ * 2016. Ein weiterer Bereich schnitte echte Produktnamen an.
+ *
+ * Der Monat muss mit abgeräumt werden, sonst bliebe ein hängendes "… Kabel
+ * Januar" stehen — schlimmer als der Jahrgang selbst. Ausgeschriebene
+ * Monatsnamen kommen im heutigen Bestand nicht vor, in den Blättern aber
+ * sehr wohl; beide Schreibweisen zu kennen kostet nichts.
+ */
+const MONAT =
+  "(?:Jan(?:uar)?|Feb(?:ruar)?|M(?:är|rz|ärz)|Apr(?:il)?|Mai|Jun(?:i)?|Jul(?:i)?|" +
+  "Aug(?:ust)?|Sep(?:t(?:ember)?)?|Okt(?:ober)?|Nov(?:ember)?|Dez(?:ember)?)";
+const JAHRGANG_AM_ENDE = new RegExp(`\\s+(?:${MONAT}\\.?\\s+)?20(?:1[6-9]|2\\d)$`, "i");
+
+/**
+ * Dokumenttitel: erste echte Zeile nach dem Blatt-Kopf — samt ihrer
+ * Fortsetzung, wenn der Name über mehrere Zeilen gesetzt ist.
+ *
+ * Der Umbruch ist kein Randfall, sondern die Regel bei allen neueren
+ * Vodafone-Blättern:
+ *
+ *     GigaZuhause 1000 Glasfaser - Ausbau durch
+ *     Kooperationspartner III (Deutsche Glasfaser) 2025
+ *
+ * Nur die erste Zeile zu nehmen, kostet genau den Teil, der die Verträge
+ * auseinanderhält: "Kooperationspartner I" gegen "II" gegen "III". Zwei
+ * verschiedene Verträge fielen dadurch nachweislich zu einem Namen zusammen
+ * (1000 Glasfaser, Deutsche Glasfaser gegen "Deutsche Glasfaser oder OXG").
+ * Und der Name steht nicht nur auf dem Schirm — er geht in den Kulanz-Brief
+ * an den Anbieter. Ein Name, der so auf keiner Rechnung steht, nimmt genau
+ * dort die Schärfe, wegen der er dort steht.
+ *
+ * Maßstab ist deshalb NICHT, was im Blatt typografisch eine Überschrift
+ * bildet, sondern was auf der Rechnung des Kunden steht. Die Telekom setzt
+ * unter ihren Produktnamen eine eigene Zeile mit technischer Präzisierung
+ * ("mit Geschwindigkeit Internet-Zugang VDSL 100"); die bleibt darum außen
+ * vor — siehe die Regel für klein beginnende Folgezeilen unten.
+ */
 export function titelFinden(text) {
   const zeilen = text.split("\n").map((z) => z.trim());
   const kopf = zeilen.findIndex((z) => /^Produktinformationsblatt/i.test(z));
@@ -355,9 +438,39 @@ export function titelFinden(text) {
     if (/^gem(?:äß)?\.?\s*§/i.test(z) || /TK-Transparenzverordnung/i.test(z)) continue;
     // Rechts daneben steht oft "Vermarktet seit …" — durch mehrere
     // Leerzeichen getrennt, also am Spaltensprung abschneiden.
-    const titel = z.split(/\s{2,}/)[0].trim();
+    const teile = [z.split(/\s{2,}/)[0].trim()];
+
+    // Fortsetzungszeilen. Sie stehen DIREKT darunter: eine Leerzeile beendet
+    // den Überschriften-Block (in allen 943 geprüften Blättern folgt keine
+    // Fortsetzung erst nach einer Lücke). Diese Strenge ist Absicht — ohne
+    // sie zöge ein Blatt mit Leerzeile vor dem Fließtext dessen ersten Satz
+    // in den Vertragsnamen.
+    for (let j = i + 1; j <= i + MAX_UMBRUCH_ZEILEN && j < zeilen.length; j++) {
+      const folge = zeilen[j];
+      if (!folge || istSeitenmoebel(folge)) break;
+      // Klein beginnend heißt: nicht der Name, sondern ein Zusatz des
+      // Blattes. Die Telekom setzt so ihre technische Präzisierung
+      // ("MagentaZuhause L" / "mit Geschwindigkeit Internet-Zugang VDSL
+      // 100"). Die gehört NICHT in den Vertragsnamen: Auf der Rechnung steht
+      // "MagentaZuhause L", und der Rechnungs-Abgleich verlangt, dass jede
+      // Zahl des Datenbank-Namens auch auf der Rechnung vorkommt — mit dem
+      // Zusatz fände er 16 echte Telekom-Produkte nicht mehr. Dass mehrere
+      // Blätter denselben Namen tragen, ist dort kein Mangel: Die Oberfläche
+      // fragt dann nach, statt zu raten.
+      if (/^[a-zäöüß]/.test(folge)) break;
+      const stueck = folge.split(/\s{2,}/)[0].trim();
+      // Fließtext statt Überschrift: zu lang, oder satzartig beendet.
+      if (!stueck || stueck.length > MAX_ZEILEN_LAENGE || /[.,;:]$/.test(stueck)) break;
+      teile.push(stueck);
+    }
+
     // "(Festnetz)" trägt keine Information — hier ist alles Festnetz.
-    const gekuerzt = titel.replace(/\s*\((?:Festnetz|Fesnetz)\)\s*$/i, "").trim();
+    // Der Jahrgang danach, damit er auch hinter "(Festnetz)" noch greift.
+    const gekuerzt = teile
+      .join(" ")
+      .replace(/\s*\((?:Festnetz|Fesnetz)\)\s*$/i, "")
+      .replace(JAHRGANG_AM_ENDE, "")
+      .trim();
     if (gekuerzt) return gekuerzt;
   }
   return null;
