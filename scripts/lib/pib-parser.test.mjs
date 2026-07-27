@@ -344,12 +344,101 @@ test("technologieBestimmen geht die Quellen der Reihe nach durch", () => {
 
 test("titelFinden überspringt die Fortsetzung des Blatt-Kopfs", () => {
   assert.equal(titelFinden(EINSUNDEINS), "1&1 Glasfaser 300");
+});
+
+test("titelFinden setzt einen über zwei Zeilen gebrochenen Namen zusammen", () => {
+  // Alle neueren Vodafone-Blätter brechen den Namen genau dort, wo er
+  // unterscheidbar wird. Ohne Fortsetzung fielen "Kooperationspartner I",
+  // "II" und "III" zu einem Namen zusammen.
+  const blatt = [
+    "Produktinformationsblatt gemäß § 1 TK-Transparenzverordnung",
+    "GigaZuhause 1000 Glasfaser - Ausbau durch",
+    "Kooperationspartner III (Deutsche Glasfaser) 2025",
+    "                                        Vermarktet seit 26.10.2025",
+  ].join("\n");
+  assert.equal(
+    titelFinden(blatt),
+    "GigaZuhause 1000 Glasfaser - Ausbau durch Kooperationspartner III (Deutsche Glasfaser)"
+  );
+});
+
+test("titelFinden hängt einen klein beginnenden Zusatz NICHT an den Namen", () => {
+  // Die Telekom setzt unter den Produktnamen eine technische Präzisierung:
+  //     MagentaZuhause L
+  //     mit Geschwindigkeit Internet-Zugang VDSL 100 (Festnetz)
+  // Auf der Rechnung steht nur "MagentaZuhause L" — und genau danach sucht
+  // der Rechnungs-Abgleich. Nähme man den Zusatz mit, fände er das Produkt
+  // nicht mehr, weil dessen Zahl (100) auf keiner Rechnung steht.
   assert.equal(titelFinden(TELEKOM), "MagentaZuhause L");
 });
 
+test("titelFinden hört bei Seitenmöbel und Fließtext auf", () => {
+  // Nach dem Titel darf nur weitergelesen werden, was zum Namen gehört.
+  const mitMoebel = [
+    "Produktinformationsblatt gem. § 1 TK-Transparenzverordnung",
+    "GigaZuhause 1000 Glasfaser - Ausbau durch",
+    "Kooperationspartner III (Deutsche Glasfaser) 2025",
+    "Festnetz",
+    "Vermarktet seit 26.10.2025",
+  ].join("\n");
+  assert.equal(
+    titelFinden(mitMoebel),
+    "GigaZuhause 1000 Glasfaser - Ausbau durch Kooperationspartner III (Deutsche Glasfaser)"
+  );
+
+  // Eine Leerzeile beendet den Überschriften-Block — sonst zöge der erste
+  // Satz des Fließtextes in den Vertragsnamen.
+  const mitLuecke = [
+    "Produktinformationsblatt gem. § 1 TK-Transparenzverordnung",
+    "GigaZuhause 1000 Kabel",
+    "",
+    "Das Produkt umfasst eine Internet-Flat.",
+  ].join("\n");
+  assert.equal(titelFinden(mitLuecke), "GigaZuhause 1000 Kabel");
+
+  // Satzartig beendet = Fließtext, kein Namensteil.
+  const mitSatz = [
+    "Produktinformationsblatt gem. § 1 TK-Transparenzverordnung",
+    "GigaZuhause 1000 Kabel",
+    "Das Produkt umfasst eine Internet-Flat.",
+  ].join("\n");
+  assert.equal(titelFinden(mitSatz), "GigaZuhause 1000 Kabel");
+});
+
 test("titelFinden schneidet die rechte Spalte und '(Festnetz)' ab", () => {
-  assert.equal(titelFinden(VODAFONE), "GigaZuhause 1000 Kabel Januar 2026");
+  assert.equal(titelFinden(VODAFONE), "GigaZuhause 1000 Kabel");
   assert.equal(titelFinden(O2), "O2 Home L 175/250/300");
+});
+
+test("titelFinden lässt den Jahrgang des Blattes aus dem Namen heraus", () => {
+  // Der Jahrgang grenzt BLÄTTER voneinander ab, nicht Verträge. Auf der
+  // Rechnung des Kunden steht er nicht — und der Rechnungs-Abgleich verlangt,
+  // dass jede Zahl des Namens dort vorkommt. Er kann also nur ausschließen.
+  const kopf = "Produktinformationsblatt gem. § 1 TK-Transparenzverordnung";
+  const titel = (...zeilen) => titelFinden([kopf, ...zeilen].join("\n"));
+
+  // Blanker Jahrgang am Ende der Fortsetzungszeile.
+  assert.equal(
+    titel("GigaZuhause 150 Glasfaser - Ausbau durch", "Kooperationspartner II (OXG) 2025"),
+    "GigaZuhause 150 Glasfaser - Ausbau durch Kooperationspartner II (OXG)"
+  );
+  // Jahrgang allein auf der Folgezeile — hier war der Name schon vorher
+  // vollständig, der Umbruch hängte nur die Jahreszahl an.
+  assert.equal(
+    titel("GigaZuhause 1000 Glasfaser 12 Monate – Regio-Zuschlag 0", "2025"),
+    "GigaZuhause 1000 Glasfaser 12 Monate – Regio-Zuschlag 0"
+  );
+  // Mit Monat davor, abgekürzt wie ausgeschrieben. Bliebe der Monat stehen,
+  // wäre der Name kaputter als mit Jahrgang.
+  assert.equal(titel("GigaZuhause 50 Kabel 12 Monate Nov 2023"), "GigaZuhause 50 Kabel 12 Monate");
+  assert.equal(titel("GigaZuhause 1000 Kabel Januar 2026"), "GigaZuhause 1000 Kabel");
+  // Auch hinter "(Festnetz)".
+  assert.equal(titel("GigaZuhause 100 Kabel 2022 (Festnetz)"), "GigaZuhause 100 Kabel");
+
+  // Gegenprobe — Geschwindigkeiten sind auch vierstellig und müssen bleiben.
+  assert.equal(titel("GigaZuhause 16 DSL Bandbreite 2000"), "GigaZuhause 16 DSL Bandbreite 2000");
+  assert.equal(titel("Vodafone CableMax 1000"), "Vodafone CableMax 1000");
+  assert.equal(titel("GigaZuhause Basic 50 DSL Bandbreite 25000"), "GigaZuhause Basic 50 DSL Bandbreite 25000");
 });
 
 // --- Einfache Blätter -----------------------------------------------------
