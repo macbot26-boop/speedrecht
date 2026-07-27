@@ -344,7 +344,65 @@ test("technologieBestimmen geht die Quellen der Reihe nach durch", () => {
 
 test("titelFinden überspringt die Fortsetzung des Blatt-Kopfs", () => {
   assert.equal(titelFinden(EINSUNDEINS), "1&1 Glasfaser 300");
+});
+
+test("titelFinden setzt einen über zwei Zeilen gebrochenen Namen zusammen", () => {
+  // Alle neueren Vodafone-Blätter brechen den Namen genau dort, wo er
+  // unterscheidbar wird. Ohne Fortsetzung fielen "Kooperationspartner I",
+  // "II" und "III" zu einem Namen zusammen.
+  const blatt = [
+    "Produktinformationsblatt gemäß § 1 TK-Transparenzverordnung",
+    "GigaZuhause 1000 Glasfaser - Ausbau durch",
+    "Kooperationspartner III (Deutsche Glasfaser) 2025",
+    "                                        Vermarktet seit 26.10.2025",
+  ].join("\n");
+  assert.equal(
+    titelFinden(blatt),
+    "GigaZuhause 1000 Glasfaser - Ausbau durch Kooperationspartner III (Deutsche Glasfaser) 2025"
+  );
+});
+
+test("titelFinden hängt einen klein beginnenden Zusatz NICHT an den Namen", () => {
+  // Die Telekom setzt unter den Produktnamen eine technische Präzisierung:
+  //     MagentaZuhause L
+  //     mit Geschwindigkeit Internet-Zugang VDSL 100 (Festnetz)
+  // Auf der Rechnung steht nur "MagentaZuhause L" — und genau danach sucht
+  // der Rechnungs-Abgleich. Nähme man den Zusatz mit, fände er das Produkt
+  // nicht mehr, weil dessen Zahl (100) auf keiner Rechnung steht.
   assert.equal(titelFinden(TELEKOM), "MagentaZuhause L");
+});
+
+test("titelFinden hört bei Seitenmöbel und Fließtext auf", () => {
+  // Nach dem Titel darf nur weitergelesen werden, was zum Namen gehört.
+  const mitMoebel = [
+    "Produktinformationsblatt gem. § 1 TK-Transparenzverordnung",
+    "GigaZuhause 1000 Glasfaser - Ausbau durch",
+    "Kooperationspartner III (Deutsche Glasfaser) 2025",
+    "Festnetz",
+    "Vermarktet seit 26.10.2025",
+  ].join("\n");
+  assert.equal(
+    titelFinden(mitMoebel),
+    "GigaZuhause 1000 Glasfaser - Ausbau durch Kooperationspartner III (Deutsche Glasfaser) 2025"
+  );
+
+  // Eine Leerzeile beendet den Überschriften-Block — sonst zöge der erste
+  // Satz des Fließtextes in den Vertragsnamen.
+  const mitLuecke = [
+    "Produktinformationsblatt gem. § 1 TK-Transparenzverordnung",
+    "GigaZuhause 1000 Kabel",
+    "",
+    "Das Produkt umfasst eine Internet-Flat.",
+  ].join("\n");
+  assert.equal(titelFinden(mitLuecke), "GigaZuhause 1000 Kabel");
+
+  // Satzartig beendet = Fließtext, kein Namensteil.
+  const mitSatz = [
+    "Produktinformationsblatt gem. § 1 TK-Transparenzverordnung",
+    "GigaZuhause 1000 Kabel",
+    "Das Produkt umfasst eine Internet-Flat.",
+  ].join("\n");
+  assert.equal(titelFinden(mitSatz), "GigaZuhause 1000 Kabel");
 });
 
 test("titelFinden schneidet die rechte Spalte und '(Festnetz)' ab", () => {
