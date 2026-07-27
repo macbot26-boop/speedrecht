@@ -372,6 +372,39 @@ const MAX_UMBRUCH_ZEILEN = 2;
 const MAX_ZEILEN_LAENGE = 80;
 
 /**
+ * Der Jahrgang, mit dem Vodafone seine Blätter voneinander abgrenzt — als
+ * blanke Jahreszahl ("… (OXG) 2025"), mit Monat davor ("… Kabel Nov 2023")
+ * oder allein auf der Folgezeile.
+ *
+ * Er gehört NICHT in den Vertragsnamen, und zwar aus einem messbaren Grund:
+ * Der Rechnungs-Abgleich verlangt, dass jede Zahl des Datenbank-Namens auch
+ * auf der Rechnung vorkommt (siehe `punkte` in rechnung-abgleich.ts). Der
+ * Jahrgang steht aber auf dem BLATT, nicht auf der Rechnung des Kunden. Er
+ * kann darum nur schaden: Nennt die Rechnung ihn nicht, fällt der Vertrag
+ * hart durch; nennt sie ihn doch, stört sein Fehlen im Namen nicht, weil
+ * überzählige Zahlen auf der Rechnung erlaubt sind. Beide Richtungen
+ * durchgerechnet: ohne Jahrgang im Namen werden 53 von 53 Altfällen
+ * gefunden, mit Jahrgang nur 27.
+ *
+ * Verloren geht dabei nichts, denn die Datenbank führt den Jahrgang bereits
+ * als eigenes Feld `versionsstand` — im Namen war er Dublette.
+ *
+ * Der Jahresbereich ist bewusst eng. Die Namen tragen auch Geschwindigkeiten
+ * als vierstellige Zahlen ("DSL Bandbreite 2000", "CableMax 1000"); die
+ * liegen bei 1000/2000/3000/6000/25000 und damit sämtlich unterhalb von
+ * 2016. Ein weiterer Bereich schnitte echte Produktnamen an.
+ *
+ * Der Monat muss mit abgeräumt werden, sonst bliebe ein hängendes "… Kabel
+ * Januar" stehen — schlimmer als der Jahrgang selbst. Ausgeschriebene
+ * Monatsnamen kommen im heutigen Bestand nicht vor, in den Blättern aber
+ * sehr wohl; beide Schreibweisen zu kennen kostet nichts.
+ */
+const MONAT =
+  "(?:Jan(?:uar)?|Feb(?:ruar)?|M(?:är|rz|ärz)|Apr(?:il)?|Mai|Jun(?:i)?|Jul(?:i)?|" +
+  "Aug(?:ust)?|Sep(?:t(?:ember)?)?|Okt(?:ober)?|Nov(?:ember)?|Dez(?:ember)?)";
+const JAHRGANG_AM_ENDE = new RegExp(`\\s+(?:${MONAT}\\.?\\s+)?20(?:1[6-9]|2\\d)$`, "i");
+
+/**
  * Dokumenttitel: erste echte Zeile nach dem Blatt-Kopf — samt ihrer
  * Fortsetzung, wenn der Name über mehrere Zeilen gesetzt ist.
  *
@@ -432,9 +465,11 @@ export function titelFinden(text) {
     }
 
     // "(Festnetz)" trägt keine Information — hier ist alles Festnetz.
+    // Der Jahrgang danach, damit er auch hinter "(Festnetz)" noch greift.
     const gekuerzt = teile
       .join(" ")
       .replace(/\s*\((?:Festnetz|Fesnetz)\)\s*$/i, "")
+      .replace(JAHRGANG_AM_ENDE, "")
       .trim();
     if (gekuerzt) return gekuerzt;
   }
