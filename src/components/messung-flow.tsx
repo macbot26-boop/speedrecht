@@ -35,6 +35,11 @@ import {
 } from "@/lib/tarife/kriterien";
 import { urteilsFenster, type Fenster, type VerlaufEintrag } from "@/lib/verlauf/fenster.ts";
 import {
+  bestaetigungsSatz,
+  reihenStand,
+  type ReihenLage,
+} from "@/lib/verlauf/reihenstand.ts";
+import {
   lokalerTag,
   neueKennung,
   verlaufEintragen,
@@ -1013,6 +1018,28 @@ function TarifClaim({
 
   // --- Tarif gewählt: benannter Vertrag + Delta-Balken + Klartext-Urteil ---
   const ton = tarifUrteil(gewaehlt, gemessenMbps);
+
+  // Die Messreihe dieses Geräts zu diesem Vertrag — EINE Rechnung für beide
+  // Zweige. Vorher stand sie in der Handlungsleiter und wurde damit bei gutem
+  // Urteil nie angestellt: Wer heute gut misst, sah seine Reihe nicht, auch
+  // wenn sie aus den Vortagen längst auffällig war.
+  const fenster = urteilsFenster(verlauf, gewaehlt.slug);
+  // Die gerade gemessene Zahl steht IMMER in der Reihe — auch wenn der Verlauf
+  // leer ist. Das ist kein Sonderfall, sondern zwei ganz normale Lagen: Im
+  // privaten Modus mancher Browser lässt sich nichts speichern, und im ersten
+  // Bild nach der Vertragswahl hat der Verlauf noch nicht geschrieben. Ohne
+  // diesen Rückfall stünde dort kurz "0 Messungen".
+  //
+  // Eine gedrosselte Messung fällt NICHT zurück: Sie bleibt mit Absicht aus dem
+  // Verlauf, und über diesen Umweg käme sie doch in die Reihe.
+  const werte: Messwert[] =
+    fenster.werte.length > 0
+      ? fenster.werte
+      : eingeschraenkt
+        ? []
+        : [{ mbps: gemessenMbps, tag: stempel?.tag ?? "einzelmessung" }];
+  const pruefung = vorpruefung(gewaehlt, werte);
+
   const urteilStil =
     ton === "gut"
       ? "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200"
@@ -1071,13 +1098,18 @@ function TarifClaim({
         <div className={`rounded-xl border px-4 py-3 text-sm leading-6 ${urteilStil}`}>{claim}</div>
 
         {/* Passt alles, gibt es nichts zu TUN — die Leiter bleibt weg. An ihre
-            Stelle tritt die Preis-Einordnung, und zwar nur, wenn ein Partner
-            eingerichtet ist: Ein Regal ohne Weg zum Vergleich wäre eine
-            Sackgasse, genau wie der tote Knopf, den die vierte Stufe vermeidet.
+            Stelle tritt die Messreihe, und danach die Preis-Einordnung, und
+            zwar nur, wenn ein Partner eingerichtet ist: Ein Regal ohne Weg zum
+            Vergleich wäre eine Sackgasse, genau wie der tote Knopf, den die
+            vierte Stufe vermeidet.
 
-            Nie beides auf einem Schirm — bei schlechtem Urteil steckt dasselbe
-            Regal schon in der vierten Stufe. Zwei Werbeblöcke untereinander
-            machten aus der Leiter eine Verkaufsstrecke.
+            Die Reihe steht ÜBER dem Regal. Was der Nutzer gemessen hat, gehört
+            zusammen; das Kommerzielle kommt zuletzt — sonst schöbe sich ein
+            Angebot zwischen sein Urteil und dessen Begründung.
+
+            Nie Leiter und Regal auf einem Schirm — bei schlechtem Urteil steckt
+            dasselbe Regal schon in der vierten Stufe. Zwei Werbeblöcke
+            untereinander machten aus der Leiter eine Verkaufsstrecke.
 
             Und bei gedrosselter Messung tritt an die Stelle der Leiter der
             eine Schritt, der jetzt zählt: noch einmal messen. */}
@@ -1094,20 +1126,27 @@ function TarifClaim({
               ton={ton}
               wechselPartner={wechselPartner}
               messungId={messungId}
-              fenster={urteilsFenster(verlauf, gewaehlt.slug)}
-              heute={stempel?.tag ?? null}
+              pruefung={pruefung}
+              fenster={fenster}
             />
           )
         ) : (
-          wechselPartner && (
-            <PreisEinordnung
-              partner={wechselPartner}
-              tarif={gewaehlt}
-              gemessenMbps={gemessenMbps}
-              ton={ton}
-              messungId={messungId}
-            />
-          )
+          <>
+            {/* Nach einer gedrosselten Messung bleibt die Reihe weg. Das gute
+                Urteil beruht dann auf einer Zahl, von der wir wissen, dass der
+                Browser sie verdorben hat — ein "über mehrere Tage ist alles in
+                Ordnung" darunter wäre eine Beruhigung ohne Grundlage. */}
+            {!eingeschraenkt && <ReihenEinordnung pruefung={pruefung} fenster={fenster} />}
+            {wechselPartner && (
+              <PreisEinordnung
+                partner={wechselPartner}
+                tarif={gewaehlt}
+                gemessenMbps={gemessenMbps}
+                ton={ton}
+                messungId={messungId}
+              />
+            )}
+          </>
         )}
       </div>
     </div>
@@ -1147,9 +1186,9 @@ function NochmalImVordergrund() {
  * wer deswegen seinen Anbieter anschreibt, blamiert sich — und führt dann zu
  * dem einzigen Weg, der rechtlich zählt.
  *
- * Die Schwellen stammen aus `vorpruefung()`, nicht aus einer zweiten Rechnung
- * an dieser Stelle: Was hier als Ziel steht, muss dasselbe sein, woran später
- * gemessen wird.
+ * Die Schwellen stammen aus der übergebenen `vorpruefung()`, nicht aus einer
+ * zweiten Rechnung an dieser Stelle: Was hier als Ziel steht, muss dasselbe
+ * sein, woran später gemessen wird — und dasselbe, was der gut-Zweig zeigt.
  */
 function WieEsWeitergeht({
   tarif,
@@ -1160,8 +1199,8 @@ function WieEsWeitergeht({
   ton,
   wechselPartner,
   messungId,
+  pruefung,
   fenster,
-  heute,
 }: {
   tarif: Tarif;
   gemessenMbps: number;
@@ -1171,19 +1210,9 @@ function WieEsWeitergeht({
   ton: UrteilTon;
   wechselPartner: string | null;
   messungId: string | null;
+  pruefung: Vorpruefung;
   fenster: Fenster;
-  heute: string | null;
 }) {
-  // Die gerade gemessene Zahl steht IMMER im Urteil — auch wenn der Verlauf
-  // leer ist. Das ist kein Sonderfall, sondern zwei ganz normale Lagen: Im
-  // privaten Modus mancher Browser lässt sich nichts speichern, und im ersten
-  // Bild nach der Vertragswahl hat der Verlauf noch nicht geschrieben.
-  // Ohne diesen Rückfall stünde dort kurz "0 Messungen".
-  const werte: Messwert[] =
-    fenster.werte.length > 0
-      ? fenster.werte
-      : [{ mbps: gemessenMbps, tag: heute ?? "einzelmessung" }];
-  const pruefung = vorpruefung(tarif, werte);
   const schwelle = (name: KriteriumName) =>
     pruefung.kriterien.find((k) => k.name === name)?.referenzMbps ?? null;
   const schwelle90 = schwelle("90_prozent");
@@ -1254,7 +1283,7 @@ function WieEsWeitergeht({
         )}
       </ol>
 
-      <MessreiheStand pruefung={pruefung} fenster={fenster} />
+      <MessreiheStand pruefung={pruefung} fenster={fenster} lage="urteil_schlecht" />
 
       <details className="group">
         <summary className="cursor-pointer list-none text-xs font-medium text-zinc-500 underline underline-offset-2 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
@@ -1309,10 +1338,21 @@ function WieEsWeitergeht({
  * Wer gerade gemessen hat und den Zähler nicht steigen sieht, hält die App
  * sonst für kaputt — dabei hält sie sich nur an die Regel der offiziellen
  * Kampagne.
+ *
+ * Der Zähler ist in beiden Lagen derselbe, der Satz darunter nicht: Welcher
+ * es ist, entscheidet `reihenStand()` — geprüft, statt hier als Kette aus
+ * Fragezeichen zu stehen.
  */
-function MessreiheStand({ pruefung, fenster }: { pruefung: Vorpruefung; fenster: Fenster }) {
+function MessreiheStand({
+  pruefung,
+  fenster,
+  lage,
+}: {
+  pruefung: Vorpruefung;
+  fenster: Fenster;
+  lage: ReihenLage;
+}) {
   const { messtage, messungen } = pruefung.kennzahlen;
-  const fehlendeTage = Math.max(0, MINDEST_MESSTAGE - messtage);
 
   const zaehler = [
     `Messtag ${Math.min(messtage, MINDEST_MESSTAGE)} von ${MINDEST_MESSTAGE}`,
@@ -1321,19 +1361,7 @@ function MessreiheStand({ pruefung, fenster }: { pruefung: Vorpruefung; fenster:
       : `${messungen} von ${MINDEST_MESSUNGEN_UEBLICH} Messungen`,
   ].join(" · ");
 
-  // Bewusst kein Warnton bei "auffaellig": Das ist eine Vorabprüfung auf
-  // unserem eigenen Server, kein Nachweis. Der Satz sagt, was der nächste
-  // Schritt ist — nicht, dass ein Anspruch bestünde.
-  const satz =
-    pruefung.gesamt === "auffaellig"
-      ? "Deine Messreihe zeigt eines der drei Anzeichen. Damit lohnt sich der Aufwand der offiziellen Messung."
-      : pruefung.gesamt === "unauffaellig"
-        ? "Deine Messreihe zeigt bisher keines der drei Anzeichen. Weitere Messtage machen das Bild sicherer."
-        : pruefung.gesamt === "kein_referenzwert"
-          ? "Das Produktinformationsblatt dieses Vertrags nennt keine Raten, gegen die sich prüfen ließe."
-          : fehlendeTage > 0
-            ? `Für ein Urteil ${fehlendeTage === 1 ? "fehlt noch ein Messtag" : `fehlen noch ${fehlendeTage} Messtage`} — miss an einem anderen Tag erneut. Deine Reihe bleibt auf diesem Gerät gespeichert.`
-            : "Für ein Urteil fehlen noch Messungen — miss im Laufe des Tages erneut.";
+  const { satz, weiterZurOffiziellen } = reihenStand(pruefung.gesamt, messtage, lage);
 
   return (
     <div className="flex flex-col gap-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-left dark:border-zinc-800 dark:bg-zinc-950">
@@ -1341,6 +1369,25 @@ function MessreiheStand({ pruefung, fenster }: { pruefung: Vorpruefung; fenster:
         Deine Messreihe · {zaehler}
       </div>
       <p className="text-xs leading-5 text-zinc-600 dark:text-zinc-400">{satz}</p>
+      {/* Ohne Handlungsleiter endete der Hinweis auf die offizielle Messung
+          sonst als Sackgasse: Der Nutzer erführe, dass etwas dran ist, und
+          bekäme keinen Weg. Bewusst nur der Link — ein Kulanz-Brief würde die
+          GUTE Zahl von heute zitieren. */}
+      {weiterZurOffiziellen && (
+        <p className="text-xs leading-5 text-zinc-600 dark:text-zinc-400">
+          Sie läuft über die{" "}
+          <a
+            href="https://breitbandmessung.de"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+          >
+            Breitbandmessung
+          </a>{" "}
+          der Bundesnetzagentur: ein Desktop-Programm, 3 Messtage, je 10 Messungen. Nur sie zählt
+          für Minderung oder Kündigung.
+        </p>
+      )}
       {fenster.zuDicht > 0 && (
         <p className="text-xs leading-5 text-zinc-500 dark:text-zinc-500">
           {fenster.zuDicht === 1 ? "Eine Messung zählt" : `${fenster.zuDicht} Messungen zählen`}{" "}
@@ -1348,6 +1395,35 @@ function MessreiheStand({ pruefung, fenster }: { pruefung: Vorpruefung; fenster:
           die offizielle Kampagne vor.
         </p>
       )}
+    </div>
+  );
+}
+
+/**
+ * Die Messreihe bei GUTEM Urteil — eine Einordnung, keine Aufgabe.
+ *
+ * Warum sie überhaupt hierher gehört: Das Urteil oben misst die Zahl von
+ * gerade eben gegen die "normalerweise verfügbare" Rate. Die drei gesetzlichen
+ * Anzeichen prüfen zusätzlich gegen 90 % der beworbenen "bis-zu"-Rate, und zwar
+ * über mehrere Tage. Bei einem Tarif "bis zu 250, normal 100" ist eine Messung
+ * von 120 zugleich vertragsgemäß und auffällig — bei mehr als jedem zehnten
+ * Vertrag im Datensatz ist dieser Abstand vorhanden. Wer heute gut misst, sah
+ * seine Reihe bisher nie, auch wenn sie aus den Vortagen längst auffällig war.
+ *
+ * Dieselbe Regel wie beim Angebots-Regal: Der erste Satz bestätigt das Urteil,
+ * bevor etwas anderes kommt. Sonst läse sich der Kasten als Widerruf, und dann
+ * steht die Glaubwürdigkeit des Urteils zur Debatte, an der alles hängt.
+ */
+function ReihenEinordnung({ pruefung, fenster }: { pruefung: Vorpruefung; fenster: Fenster }) {
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+        Über mehrere Tage gelesen
+      </div>
+      <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+        {bestaetigungsSatz(pruefung.gesamt)}
+      </p>
+      <MessreiheStand pruefung={pruefung} fenster={fenster} lage="urteil_gut" />
     </div>
   );
 }
