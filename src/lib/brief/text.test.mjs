@@ -156,9 +156,9 @@ test("keine unbelegte Verstärkung wie „deutlich“", () => {
 test("alle drei Raten stehen so im Brief wie im Produktinformationsblatt", () => {
   const { text } = briefBauen(eingabe());
   assert.match(text, /100 Mbit\/s als Maximalrate/);
-  assert.match(text, /83\.8 Mbit\/s als normalerweise zur Verfügung stehende Rate/);
-  assert.match(text, /54\.0 Mbit\/s als Mindestrate/);
-  assert.match(text, /kamen bei mir 42\.0 Mbit\/s an/);
+  assert.match(text, /83,8 Mbit\/s als normalerweise zur Verfügung stehende Rate/);
+  assert.match(text, /54,0 Mbit\/s als Mindestrate/);
+  assert.match(text, /kamen bei mir 42,0 Mbit\/s an/);
 });
 
 test("fehlende Raten werden weggelassen, ohne den Satz zu zerreißen", () => {
@@ -173,20 +173,31 @@ test("zwei Raten werden mit „und“ verbunden, drei mit Komma und „und“", 
   const ohneMin = { ...magentaL, download_min_mbps: null };
   assert.match(
     briefBauen(eingabe({ tarif: ohneMin })).text,
-    /100 Mbit\/s als Maximalrate und 83\.8 Mbit\/s als normalerweise/
+    /100 Mbit\/s als Maximalrate und 83,8 Mbit\/s als normalerweise/
   );
   assert.match(
     briefBauen(eingabe()).text,
-    /Maximalrate, 83\.8 Mbit\/s als normalerweise zur Verfügung stehende Rate und 54\.0 Mbit\/s als Mindestrate/
+    /Maximalrate, 83,8 Mbit\/s als normalerweise zur Verfügung stehende Rate und 54,0 Mbit\/s als Mindestrate/
   );
 });
 
 test("die Rundung ist dieselbe wie auf dem Schirm", () => {
-  // 49,96 steht auf dem Schirm als "50.0" — der Brief muss dieselbe Zahl
+  // 49,96 steht auf dem Schirm als "50,0" — der Brief muss dieselbe Zahl
   // nennen, sonst widersprechen sich Ergebnis und Brief.
   const { text } = briefBauen(eingabe({ gemessenMbps: 49.96 }));
-  assert.match(text, /kamen bei mir 50\.0 Mbit\/s an/);
+  assert.match(text, /kamen bei mir 50,0 Mbit\/s an/);
   assert.ok(!text.includes("49.96"), "der Rohwert darf nicht im Brief stehen");
+});
+
+test("die Zahlen im Brief stehen deutsch da", () => {
+  // Der Brief geht an den Anbieter und soll im Zweifel vor Gericht taugen.
+  // "2,000 Mbit/s" für zweitausend wäre dort die Zusicherung von zwei.
+  const gigabit = { ...magentaL, download_max_mbps: 2000, download_normal_mbps: 1500, download_min_mbps: 1000 };
+  const { text } = briefBauen(eingabe({ tarif: gigabit, gemessenMbps: 44 }));
+  assert.match(text, /2\.000 Mbit\/s als Maximalrate/);
+  assert.match(text, /1\.500 Mbit\/s als normalerweise/);
+  assert.match(text, /1\.000 Mbit\/s als Mindestrate/);
+  assert.match(text, /kamen bei mir 44,0 Mbit\/s an/);
 });
 
 // ---------------------------------------------------------------------------
@@ -218,7 +229,7 @@ test("der Messweg wird genannt, wenn er bekannt ist — und sonst nicht behaupte
   const unbekannt = briefBauen(eingabe({ verbindung: null })).text;
   assert.ok(!unbekannt.includes("LAN-Kabel"), "ohne Angabe wird kein Kabel behauptet");
   assert.ok(!unbekannt.includes("über WLAN"), "ohne Angabe wird kein WLAN behauptet");
-  assert.match(unbekannt, /kamen bei mir 42\.0 Mbit\/s an\./);
+  assert.match(unbekannt, /kamen bei mir 42,0 Mbit\/s an\./);
 });
 
 test("WLAN wird offen genannt, statt es zu verschweigen", () => {
