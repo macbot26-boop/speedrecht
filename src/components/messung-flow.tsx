@@ -27,9 +27,18 @@ import {
 import { tarifUrteil, type UrteilTon } from "@/lib/tarife/urteil";
 import {
   MINDEST_MESSTAGE,
+  MINDEST_MESSUNGEN_UEBLICH,
   vorpruefung,
   type KriteriumName,
+  type Messwert,
+  type Vorpruefung,
 } from "@/lib/tarife/kriterien";
+import { urteilsFenster, type Fenster, type VerlaufEintrag } from "@/lib/verlauf/fenster.ts";
+import {
+  lokalerTag,
+  neueKennung,
+  verlaufEintragen,
+} from "@/lib/verlauf/speicher.ts";
 import { MAX_UPLOAD_BYTES } from "@/lib/rechnung/dateipruefung.ts";
 import { scanSchritt, type ScanSchritt } from "@/lib/rechnung/scan-fluss.ts";
 import { briefBauen, type Verbindung } from "@/lib/brief/text.ts";
@@ -65,6 +74,20 @@ const PHASE_LABELS: Record<string, string> = {
 };
 
 type SaveState = "idle" | "saving" | "saved" | "failed";
+
+/**
+ * Was eine abgeschlossene Messung im Messverlauf ausweist.
+ *
+ * Erst im Browser gesetzt: Kennung und Uhrzeit gibt es beim Rendern auf dem
+ * Server nicht in einer Form, die zum Gerät passt.
+ */
+interface Messstempel {
+  id: string;
+  /** Millisekunden seit 1970 (UTC). */
+  zeit: number;
+  /** Kalendertag "JJJJ-MM-TT" in der lokalen Zeit des Geräts. */
+  tag: string;
+}
 
 /** Antwort von GET /api/netz — in welchem Netz sind wir gerade? */
 interface NetzInfo {
@@ -108,6 +131,10 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
   const [netz, setNetz] = useState<NetzInfo | null>(null);
   const zellular = useSyncExternalStore(zellularAbo, zellularErkannt, () => false);
   const savedForResult = useRef<IasCompletedKpis | null>(null);
+  // Kennung, Zeit und Kalendertag dieser einen Messung — zusammen der Stempel,
+  // unter dem sie in den Messverlauf des Geräts geht.
+  const [stempel, setStempel] = useState<Messstempel | null>(null);
+  const gestempeltFor = useRef<IasCompletedKpis | null>(null);
 
   // Einmal beim Öffnen: In welchem Netz sind wir? (Für Warnhinweise vor der
   // Messung und den Anbieter-Vorschlag nach dem Ergebnis.)
@@ -138,8 +165,25 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
     // nichts mehr setzen (sonst hinge die Anbieter-Bestätigung an der
     // falschen Messung).
     savedForResult.current = null;
+    // Und die neue Messung bekommt einen eigenen Stempel — sonst liefe sie
+    // unter der Kennung der vorherigen und überschriebe sie im Verlauf.
+    gestempeltFor.current = null;
+    setStempel(null);
     void start();
   }, [start]);
+
+  // Genau einmal je abgeschlossener Messung: Kennung, Zeitpunkt, Kalendertag.
+  // Bewusst hier im Effekt und nicht beim Rendern — beides hängt an der Uhr
+  // des Geräts, und beim Rendern auf dem Server gäbe es dafür keinen Wert,
+  // der zum Browser passt. Bewusst getrennt vom anonymen Speichern weiter
+  // unten: Der Messverlauf gehört dem Gerät und darf nicht daran hängen, ob
+  // unser Server gerade erreichbar ist.
+  useEffect(() => {
+    if (phase !== "done" || !result || gestempeltFor.current === result) return;
+    gestempeltFor.current = result;
+    const jetzt = new Date();
+    setStempel({ id: neueKennung(), zeit: jetzt.getTime(), tag: lokalerTag(jetzt) });
+  }, [phase, result]);
 
   // Ein-Tap-Start: Der „Jetzt messen“-Knopf der Startseite verlinkt auf
   // /messung?start=1 — dann geht es hier ohne weiteren Klick los. Der
@@ -351,6 +395,7 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
           connection={connection}
           wechselPartner={wechselPartner}
           messungId={savedId}
+          stempel={stempel}
         />
 
         {/* Ehrlichkeits-Labels — Produktgesetz, nicht verhandelbar */}
@@ -697,12 +742,14 @@ function TarifClaim({
   connection,
   wechselPartner,
   messungId,
+  stempel,
 }: {
   anbieter: string | null;
   gemessenMbps: number | null;
   connection: ConnectionType | null;
   wechselPartner: string | null;
   messungId: string | null;
+  stempel: Messstempel | null;
 }) {
   const [gewaehlt, setGewaehlt] = useState<Tarif | null>(null);
   const [alleZeigen, setAlleZeigen] = useState(false);
@@ -726,6 +773,37 @@ function TarifClaim({
   // NUR dann ein zweites Mal hinaus, wenn der Nutzer beim Brief ausdrücklich
   // einwilligt; beim Schließen der Seite ist es weg.
   const [rechnungsBild, setRechnungsBild] = useState<File | null>(null);
+  // Der Messverlauf dieses Geräts, so weit er den gewählten Tarif betrifft.
+  // Leer, solange kein Vertrag steht — vorher wüssten wir nicht, zu welchem
+  // Produktinformationsblatt die Messung gehört.
+  const [verlauf, setVerlauf] = useState<VerlaufEintrag[]>([]);
+
+  /**
+   * Der eine Weg, auf dem ein Vertrag gewählt wird — aus der Liste, aus der
+   * Namensfrage oder aus einem Rechnungs-Scan.
+   *
+   * Dass die Messung hier in den Verlauf geht und nicht in einem Effekt
+   * daneben, ist Absicht: Erst mit dem Vertrag steht fest, gegen welches
+   * Produktinformationsblatt gemessen wurde — die Wahl IST das Ereignis.
+   *
+   * Korrigiert der Nutzer den Vertrag später, läuft das hier erneut, aber
+   * unter derselben Kennung: Er hat nicht neu gemessen, dieselbe Messung
+   * gehört nur zu einem anderen Vertrag.
+   */
+  const tarifWaehlen = (tarif: Tarif) => {
+    setGewaehlt(tarif);
+    if (!stempel || gemessenMbps == null || gemessenMbps <= 0) return;
+    setVerlauf(
+      verlaufEintragen({
+        id: stempel.id,
+        mbps: gemessenMbps,
+        tag: stempel.tag,
+        zeit: stempel.zeit,
+        tarifSlug: tarif.slug,
+        verbindung: connection ?? "unknown",
+      })
+    );
+  };
 
   // "ändern" im Ergebnis fängt von vorn an; "zurück" aus der Namensfrage
   // behält dagegen die geöffnete Vollliste — wer sich durch 66 Vodafone-Knöpfe
@@ -752,7 +830,7 @@ function TarifClaim({
   // — genau der Fehler, den die zweistufige Auswahl behoben hat.
   const klasseUebernehmen = (klasse: TarifVorschlag) => {
     setScanOffen(false);
-    if (klasse.namensWahl.length <= 1) setGewaehlt(klasse.tarif);
+    if (klasse.namensWahl.length <= 1) tarifWaehlen(klasse.tarif);
     else setNamensWahl(klasse.namensWahl);
   };
 
@@ -820,7 +898,7 @@ function TarifClaim({
             {namensWahl.map((tarif) => (
               <button
                 key={tarif.slug}
-                onClick={() => setGewaehlt(tarif)}
+                onClick={() => tarifWaehlen(tarif)}
                 className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
               >
                 {tarif.tarifname}
@@ -870,7 +948,7 @@ function TarifClaim({
                 // Ein Name in der Klasse: fertig. Mehrere: erst fragen, welcher
                 // — raten würde hier einen fremden Vertrag ins Ergebnis setzen.
                 onClick={() =>
-                  v.namensWahl.length === 1 ? setGewaehlt(v.tarif) : setNamensWahl(v.namensWahl)
+                  v.namensWahl.length === 1 ? tarifWaehlen(v.tarif) : setNamensWahl(v.namensWahl)
                 }
               />
             ))}
@@ -982,6 +1060,8 @@ function TarifClaim({
             ton={ton}
             wechselPartner={wechselPartner}
             messungId={messungId}
+            fenster={urteilsFenster(verlauf, gewaehlt.slug)}
+            heute={stempel?.tag ?? null}
           />
         ) : (
           wechselPartner && (
@@ -1021,6 +1101,8 @@ function WieEsWeitergeht({
   ton,
   wechselPartner,
   messungId,
+  fenster,
+  heute,
 }: {
   tarif: Tarif;
   gemessenMbps: number;
@@ -1030,12 +1112,19 @@ function WieEsWeitergeht({
   ton: UrteilTon;
   wechselPartner: string | null;
   messungId: string | null;
+  fenster: Fenster;
+  heute: string | null;
 }) {
-  // Eine einzelne Messung an einem Messtag. Welcher Kalendertag das ist,
-  // ändert am Ergebnis nichts, solange es nur einer ist — der feste Schlüssel
-  // vermeidet einen Unterschied zwischen Server- und Browser-Darstellung.
-  // Sobald echte Messreihen gespeichert werden (Phase 7), stehen hier Daten.
-  const pruefung = vorpruefung(tarif, [{ mbps: gemessenMbps, tag: "einzelmessung" }]);
+  // Die gerade gemessene Zahl steht IMMER im Urteil — auch wenn der Verlauf
+  // leer ist. Das ist kein Sonderfall, sondern zwei ganz normale Lagen: Im
+  // privaten Modus mancher Browser lässt sich nichts speichern, und im ersten
+  // Bild nach der Vertragswahl hat der Verlauf noch nicht geschrieben.
+  // Ohne diesen Rückfall stünde dort kurz "0 Messungen".
+  const werte: Messwert[] =
+    fenster.werte.length > 0
+      ? fenster.werte
+      : [{ mbps: gemessenMbps, tag: heute ?? "einzelmessung" }];
+  const pruefung = vorpruefung(tarif, werte);
   const schwelle = (name: KriteriumName) =>
     pruefung.kriterien.find((k) => k.name === name)?.referenzMbps ?? null;
   const schwelle90 = schwelle("90_prozent");
@@ -1106,6 +1195,8 @@ function WieEsWeitergeht({
         )}
       </ol>
 
+      <MessreiheStand pruefung={pruefung} fenster={fenster} />
+
       <details className="group">
         <summary className="cursor-pointer list-none text-xs font-medium text-zinc-500 underline underline-offset-2 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
           Was dort geprüft wird
@@ -1135,11 +1226,69 @@ function WieEsWeitergeht({
             )}
           </ul>
           <p className="text-zinc-500 dark:text-zinc-500">
-            Deine eine Messung reicht dafür nicht — für ein Urteil fehlen noch{" "}
-            {MINDEST_MESSTAGE - pruefung.kennzahlen.messtage} Messtage.
+            Geprüft wird das über eine Messreihe, nicht über eine einzelne Zahl — deine läuft
+            gerade{" "}
+            {pruefung.kennzahlen.messtage <= 1
+              ? "seit einem Messtag"
+              : `über ${pruefung.kennzahlen.messtage} Messtage`}
+            .
           </p>
         </div>
       </details>
+    </div>
+  );
+}
+
+/**
+ * Wie weit die eigene Messreihe ist — und was sie schon hergibt.
+ *
+ * Das ersetzt ein nacktes „dafür reicht deine Messung nicht“. Der Unterschied
+ * ist nicht kosmetisch: Ein Nutzer, der nicht weiß, WAS fehlt, misst kein
+ * zweites Mal. Deshalb steht hier immer eine Zahl, die sich bewegen kann.
+ *
+ * Die zu dicht beieinander liegenden Messungen werden ausdrücklich genannt.
+ * Wer gerade gemessen hat und den Zähler nicht steigen sieht, hält die App
+ * sonst für kaputt — dabei hält sie sich nur an die Regel der offiziellen
+ * Kampagne.
+ */
+function MessreiheStand({ pruefung, fenster }: { pruefung: Vorpruefung; fenster: Fenster }) {
+  const { messtage, messungen } = pruefung.kennzahlen;
+  const fehlendeTage = Math.max(0, MINDEST_MESSTAGE - messtage);
+
+  const zaehler = [
+    `Messtag ${Math.min(messtage, MINDEST_MESSTAGE)} von ${MINDEST_MESSTAGE}`,
+    messungen >= MINDEST_MESSUNGEN_UEBLICH
+      ? `${messungen} Messungen`
+      : `${messungen} von ${MINDEST_MESSUNGEN_UEBLICH} Messungen`,
+  ].join(" · ");
+
+  // Bewusst kein Warnton bei "auffaellig": Das ist eine Vorabprüfung auf
+  // unserem eigenen Server, kein Nachweis. Der Satz sagt, was der nächste
+  // Schritt ist — nicht, dass ein Anspruch bestünde.
+  const satz =
+    pruefung.gesamt === "auffaellig"
+      ? "Deine Messreihe zeigt eines der drei Anzeichen. Damit lohnt sich der Aufwand der offiziellen Messung."
+      : pruefung.gesamt === "unauffaellig"
+        ? "Deine Messreihe zeigt bisher keines der drei Anzeichen. Weitere Messtage machen das Bild sicherer."
+        : pruefung.gesamt === "kein_referenzwert"
+          ? "Das Produktinformationsblatt dieses Vertrags nennt keine Raten, gegen die sich prüfen ließe."
+          : fehlendeTage > 0
+            ? `Für ein Urteil ${fehlendeTage === 1 ? "fehlt noch ein Messtag" : `fehlen noch ${fehlendeTage} Messtage`} — miss an einem anderen Tag erneut. Deine Reihe bleibt auf diesem Gerät gespeichert.`
+            : "Für ein Urteil fehlen noch Messungen — miss im Laufe des Tages erneut.";
+
+  return (
+    <div className="flex flex-col gap-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-left dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+        Deine Messreihe · {zaehler}
+      </div>
+      <p className="text-xs leading-5 text-zinc-600 dark:text-zinc-400">{satz}</p>
+      {fenster.zuDicht > 0 && (
+        <p className="text-xs leading-5 text-zinc-500 dark:text-zinc-500">
+          {fenster.zuDicht === 1 ? "Eine Messung zählt" : `${fenster.zuDicht} Messungen zählen`}{" "}
+          nicht mit: Zwischen zwei Messungen müssen mindestens 5 Minuten liegen — so schreibt es
+          die offizielle Kampagne vor.
+        </p>
+      )}
     </div>
   );
 }
