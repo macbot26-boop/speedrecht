@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadIasEngine } from "./loader";
+import {
+  TAKT_MS,
+  istEingeschraenkt,
+  istHaenger,
+  mitLebenszeichen,
+  mitSichtbarkeit,
+  mitTakt,
+  neueBedingungen,
+} from "./messbedingungen";
 import type {
   IasCallbackData,
   IasCompletedKpis,
@@ -65,6 +74,74 @@ function buildParams(cmd: "start" | "stop") {
   });
 }
 
+/**
+ * Die zwei Texte, mit denen eine stehen gebliebene Messung endet.
+ *
+ * Zwei, weil der Wächter nicht nur bei Drosselung anschlägt: Er merkt, DASS
+ * sich nichts mehr rührt, nicht warum. Nur wenn wir die Seite tatsächlich als
+ * ausgebremst erkannt haben, dürfen wir das als Ursache nennen — sonst schickt
+ * die Meldung jemanden auf die Suche nach einem Hintergrund-Tab, den es nie
+ * gab.
+ */
+const STILLSTAND_GEDROSSELT =
+  "Der Browser hat diesen Tab im Hintergrund ausgebremst — die Messung kam dadurch nicht zu Ende. Lass die Seite im Vordergrund und starte sie noch einmal.";
+const STILLSTAND_UNBEKANNT =
+  "Die Messung hat sich nicht mehr gemeldet und wurde abgebrochen. Bitte starte sie noch einmal.";
+
+/** Liegt die Seite gerade im Hintergrund? */
+function seiteVerborgen(): boolean {
+  return typeof document !== "undefined" && document.visibilityState === "hidden";
+}
+
+/**
+ * Der Wächter über einen laufenden Messvorgang.
+ *
+ * Er beobachtet die zwei Lagen, gegen die die Messbibliothek selbst nichts
+ * unternimmt (siehe `messbedingungen.ts`): eine ausgebremste Seite und eine
+ * Messung, die steht. Die Regeln stehen dort, hier steht nur die Verkabelung
+ * mit Uhr und Browser.
+ *
+ * Zurück kommen zwei Griffe: `lebenszeichen()` meldet jedes Ereignis der
+ * Messbibliothek, `beenden()` stellt den Wächter wieder ab.
+ */
+function waechterStarten(meldungen: {
+  gedrosselt: () => void;
+  stillstand: (gedrosselt: boolean) => void;
+}) {
+  let stand = neueBedingungen(Date.now(), seiteVerborgen());
+
+  const pruefen = () => {
+    const gedrosselt = istEingeschraenkt(stand);
+    if (gedrosselt) meldungen.gedrosselt();
+    if (istHaenger(stand, Date.now())) meldungen.stillstand(gedrosselt);
+  };
+
+  const takt = setInterval(() => {
+    stand = mitTakt(stand, Date.now());
+    pruefen();
+  }, TAKT_MS);
+
+  // Zusätzlich zum Herzschlag, weil der Herzschlag in einem gedrosselten Tab
+  // selbst gedrosselt ist: Kehrt der Nutzer zurück, läuft der Browser sofort
+  // wieder normal — dann soll er die Meldung sehen und nicht bis zum nächsten
+  // Schlag auf einen Fortschrittsbalken starren, hinter dem nichts mehr ist.
+  const sichtbarkeit = () => {
+    stand = mitSichtbarkeit(stand, seiteVerborgen());
+    pruefen();
+  };
+  document.addEventListener("visibilitychange", sichtbarkeit);
+
+  return {
+    lebenszeichen: () => {
+      stand = mitLebenszeichen(stand, Date.now());
+    },
+    beenden: () => {
+      clearInterval(takt);
+      document.removeEventListener("visibilitychange", sichtbarkeit);
+    },
+  };
+}
+
 const ERROR_MESSAGES: Record<number, string> = {
   1: "Interner Fehler: Messparameter unvollständig.",
   2: "Zeitüberschreitung — der Messserver hat nicht rechtzeitig geantwortet.",
@@ -82,6 +159,14 @@ export interface IasMeasurementState {
   uploadMbps: number | null;
   result: IasCompletedKpis | null;
   error: MeasurementError | null;
+  /**
+   * Wurde die Seite während dieser Messung vom Browser ausgebremst?
+   *
+   * Dann sind die Zahlen zu niedrig — vor allem der Ping — und das Ergebnis
+   * darf weder in die Messreihe noch in den Kulanz-Brief. Angezeigt wird es
+   * trotzdem, aber gekennzeichnet.
+   */
+  eingeschraenkt: boolean;
 }
 
 const INITIAL: IasMeasurementState = {
@@ -91,6 +176,7 @@ const INITIAL: IasMeasurementState = {
   uploadMbps: null,
   result: null,
   error: null,
+  eingeschraenkt: false,
 };
 
 /**
@@ -101,17 +187,25 @@ export function useIasMeasurement() {
   const [state, setState] = useState<IasMeasurementState>(INITIAL);
   const runIdRef = useRef(0);
   const runningRef = useRef(false);
+  const waechterRef = useRef<ReturnType<typeof waechterStarten> | null>(null);
+
+  /** Stellt den Wächter ab — jeder Weg aus einer Messung führt hier vorbei. */
+  const waechterAbstellen = useCallback(() => {
+    waechterRef.current?.beenden();
+    waechterRef.current = null;
+  }, []);
 
   const stop = useCallback(() => {
-    if (runningRef.current && window.iasMeasurement) {
+    waechterAbstellen();
+    if (runningRef.current) {
       try {
-        window.iasMeasurement.measurementControl(buildParams("stop"));
+        window.iasMeasurement?.measurementControl(buildParams("stop"));
       } catch {
         // Engine war noch nicht initialisiert — nichts zu stoppen.
       }
       runningRef.current = false;
     }
-  }, []);
+  }, [waechterAbstellen]);
 
   // Beim Verlassen der Seite laufende Messung abbrechen.
   useEffect(() => {
@@ -140,8 +234,38 @@ export function useIasMeasurement() {
     }
     if (runId !== runIdRef.current) return; // Seite verlassen o. Ä.
 
+    // Ab hier läuft der Wächter. Er tut die zwei Dinge, die die
+    // Messbibliothek nicht tut: eine ausgebremste Seite kennzeichnen und eine
+    // Messung beenden, die steht (siehe `messbedingungen.ts`).
+    waechterRef.current = waechterStarten({
+      gedrosselt: () => {
+        if (runId !== runIdRef.current) return;
+        // Denselben Zustand zurückgeben, wenn schon gekennzeichnet: Der
+        // Herzschlag meldet im Sekundentakt, ein neues Objekt je Schlag wäre
+        // ein Neu-Zeichnen pro Sekunde — mitten in der laufenden Messung.
+        setState((s) => (s.eingeschraenkt ? s : { ...s, eingeschraenkt: true }));
+      },
+      stillstand: (gedrosselt) => {
+        if (runId !== runIdRef.current) return;
+        // Erst die Kennung hochzählen, dann anhalten: Was die Engine beim
+        // Stoppen noch nachreicht, gehört zu einem Lauf, den es nicht mehr
+        // gibt, und darf die Meldung unten nicht überschreiben.
+        runIdRef.current += 1;
+        stop();
+        setState((s) => ({
+          ...s,
+          phase: "error",
+          error: { message: gedrosselt ? STILLSTAND_GEDROSSELT : STILLSTAND_UNBEKANNT },
+        }));
+      },
+    });
+
     window.measurementCallback = (raw: string) => {
       if (runId !== runIdRef.current) return; // Ereignis aus altem Lauf
+      // Jedes Ereignis ist ein Lebenszeichen — egal welches. Der Wächter
+      // fragt nicht nach Fortschritt, nur danach, ob überhaupt noch etwas
+      // passiert.
+      waechterRef.current?.lebenszeichen();
       let data: IasCallbackData;
       try {
         data = JSON.parse(raw) as IasCallbackData;
@@ -151,6 +275,7 @@ export function useIasMeasurement() {
 
       if (data.cmd === "error") {
         runningRef.current = false;
+        waechterAbstellen();
         setState((s) => ({
           ...s,
           phase: "error",
@@ -167,6 +292,7 @@ export function useIasMeasurement() {
 
       if (data.cmd === "completed") {
         runningRef.current = false;
+        waechterAbstellen();
         setState((s) => ({ ...s, phase: "done", result: data }));
         return;
       }
@@ -196,7 +322,7 @@ export function useIasMeasurement() {
     window.iasMeasurement = null;
     window.iasMeasurement = new window.IASMeasurement();
     window.iasMeasurement.measurementControl(buildParams("start"));
-  }, []);
+  }, [stop, waechterAbstellen]);
 
   return { ...state, start, stop };
 }

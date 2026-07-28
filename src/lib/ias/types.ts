@@ -66,6 +66,11 @@ declare global {
     };
     iasMeasurement: { measurementControl: (params: string) => void } | null;
     measurementCallback: (data: string) => void;
+    // Die drei Protokoll-Schalter der Messbibliothek. Sie werden von
+    // `tool.js` angelegt und von `ip.js`/`control.js` beim Parsen gelesen —
+    // umgelegt werden sie deshalb genau dazwischen (siehe `loader.ts`).
     logEnabled: boolean;
+    logReports: boolean;
+    logDebug: boolean;
   }
 }
