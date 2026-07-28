@@ -13,15 +13,34 @@ export function aufAnzeige(n: number): number {
 }
 
 /**
- * Dieselbe Zahl als Text — "–", wenn nichts vorliegt.
+ * Dieselbe Zahl als Text in deutscher Schreibweise — "–", wenn nichts vorliegt.
  *
  * Geht bewusst durch aufAnzeige, statt die Rundung ein zweites Mal
- * hinzuschreiben: Sonst stünde 99,96 als "100.0" auf dem Schirm, während die
+ * hinzuschreiben: Sonst stünde 99,96 als "100,0" auf dem Schirm, während die
  * Klassenbildung es als 100 führt — die beiden Regeln liefen an der Grenze
  * auseinander, und genau das soll diese Datei verhindern.
  */
 export function formatMbps(wert: number | null): string {
   if (wert === null) return "–";
   const gerundet = aufAnzeige(wert);
-  return gerundet >= 100 ? gerundet.toString() : gerundet.toFixed(1);
+  const roh = gerundet >= 100 ? gerundet.toString() : gerundet.toFixed(1);
+  return deutscheSchreibweise(roh);
+}
+
+/**
+ * Aus der maschinellen Schreibweise die deutsche machen: "2000.5" → "2.000,5".
+ *
+ * Von Hand statt über Intl.NumberFormat("de-DE"): Fehlen einer Umgebung die
+ * vollen Sprachdaten, fällt Intl still auf Englisch zurück und schriebe
+ * "2,000" — dieselbe Zahl, die im Deutschen "zwei Komma null" heißt. Im
+ * Kulanz-Brief an den Anbieter stünde dann eine Zusicherung von 2 statt
+ * 2000 Mbit/s, ohne dass irgendwo ein Fehler gemeldet würde. Diese Zeilen
+ * liefern überall dasselbe Ergebnis.
+ */
+function deutscheSchreibweise(roh: string): string {
+  const [ganz, nachkomma] = roh.split(".");
+  // Von rechts nach jeder dritten Ziffer ein Punkt — aber nie ganz vorn und
+  // nie hinter dem Minuszeichen (\B trifft keinen Wortanfang): 2000 → 2.000.
+  const mitTausenderpunkt = ganz.replace(/\B(?=(\d{3})+$)/g, ".");
+  return nachkomma === undefined ? mitTausenderpunkt : `${mitTausenderpunkt},${nachkomma}`;
 }

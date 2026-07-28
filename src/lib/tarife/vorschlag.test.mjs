@@ -303,8 +303,35 @@ test("Anzeige und Klassen-Rundung stimmen an jeder Stelle überein", () => {
   }
   assert.equal(formatMbps(99.96), "100");
   assert.equal(aufAnzeige(99.96), 100);
-  assert.equal(formatMbps(83.75), "83.8");
+  assert.equal(formatMbps(83.75), "83,8");
   assert.equal(formatMbps(null), "–");
+});
+
+test("Zahlen stehen deutsch da — Komma unten, Tausenderpunkt oben", () => {
+  // Sonst läse sich der Schirm halb englisch ("44.0 Mbit/s" neben "39,99 €"),
+  // und im Kulanz-Brief stünde eine Zusicherung in fremder Schreibweise.
+  assert.equal(formatMbps(44), "44,0");
+  assert.equal(formatMbps(0.768), "0,8");
+  assert.equal(formatMbps(99.9), "99,9");
+
+  // Ab 100 ganzzahlig — und ab 1000 mit Tausenderpunkt, damit die Zahl so
+  // dasteht wie der Vertragsname daneben ("Glasfaser 2.000").
+  assert.equal(formatMbps(100), "100");
+  assert.equal(formatMbps(250), "250");
+  assert.equal(formatMbps(1000), "1.000");
+  assert.equal(formatMbps(2000), "2.000");
+
+  // Und zwar für JEDEN Wert der echten Tabelle, nicht nur für die Proben oben.
+  // Ein Punkt als Dezimalzeichen ("83.8") oder ein Komma als Tausendertrenner
+  // ("2,000") hieße auf einem Brief an den Anbieter etwas völlig anderes.
+  const DEUTSCH = /^\d{1,3}(\.\d{3})*(,\d)?$/;
+  for (const t of daten.tarife) {
+    for (const feld of ["download_max_mbps", "download_normal_mbps", "download_min_mbps"]) {
+      const text = formatMbps(t[feld]);
+      if (text === "–") continue; // nicht jeder Tarif nennt jede Rate
+      assert.ok(DEUTSCH.test(text), `${t.slug}.${feld}: keine deutsche Schreibweise (${text})`);
+    }
+  }
 });
 
 test("jeder Wert der echten Tabelle wird einheitlich gerundet", () => {
