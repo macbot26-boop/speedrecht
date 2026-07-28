@@ -123,7 +123,7 @@ function zellularErkannt(): boolean {
 // der Urteil und Tarif-Bündelung rechnen.
 
 export function MessungFlow({ wechselPartner }: { wechselPartner: string | null }) {
-  const { phase, rttMs, downloadMbps, uploadMbps, result, error, start } =
+  const { phase, rttMs, downloadMbps, uploadMbps, result, error, eingeschraenkt, start } =
     useIasMeasurement();
   const [connection, setConnection] = useState<ConnectionType | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -210,8 +210,14 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
   }, [begin]);
 
   // Ergebnis anonym speichern, genau einmal pro abgeschlossener Messung.
+  //
+  // Eine gedrosselte Messung geht NICHT hinaus. Ihre Zahlen sind zu niedrig,
+  // und in unserer anonymen Statistik wären sie später von einer echten
+  // Störung nicht mehr zu unterscheiden — ein Anbieter sähe dort schlechte
+  // Werte, die in Wahrheit sein Netz nie berührt haben.
   useEffect(() => {
-    if (phase !== "done" || !result || savedForResult.current === result) return;
+    if (phase !== "done" || !result || eingeschraenkt || savedForResult.current === result)
+      return;
     savedForResult.current = result;
     setSaveState("saving");
     fetch("/api/messungen", {
@@ -256,7 +262,7 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
         if (savedForResult.current !== result) return; // veraltete Antwort
         setSaveState("failed");
       });
-  }, [phase, result, connection]);
+  }, [phase, result, connection, eingeschraenkt]);
 
   // ---- Testphase ohne öffentlichen Messserver: ehrlich sagen, statt in
   // einen sicheren Fehler laufen zu lassen. ----
@@ -354,6 +360,21 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
           Dein Ergebnis
         </h1>
 
+        {/* Bewusst GANZ oben, noch vor den drei Zahlen: Gedrosselt ist nicht
+            das Urteil falsch, sondern schon die Messung. Wer erst unten
+            erführe, dass die 12 Mbit/s nie stimmten, hätte sie längst
+            geglaubt. */}
+        {eingeschraenkt && (
+          <Warnkarte titel="Unter eingeschränkten Bedingungen gemessen.">
+            Dieser Tab lief im Hintergrund — dann bremst der Browser die Seite
+            aus, und die Zahlen fallen zu niedrig aus, vor allem der Ping. Du
+            siehst das Ergebnis trotzdem, aber es zählt nicht: Es geht weder in
+            deine Messreihe noch in das Schreiben an deinen Anbieter, und
+            gespeichert wird es auch nicht. Miss noch einmal, während die Seite
+            im Vordergrund ist.
+          </Warnkarte>
+        )}
+
         <div className="grid w-full grid-cols-3 gap-3">
           <ResultCard
             label="Download"
@@ -396,6 +417,7 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
           wechselPartner={wechselPartner}
           messungId={savedId}
           stempel={stempel}
+          eingeschraenkt={eingeschraenkt}
         />
 
         {/* Ehrlichkeits-Labels — Produktgesetz, nicht verhandelbar */}
@@ -743,6 +765,7 @@ function TarifClaim({
   wechselPartner,
   messungId,
   stempel,
+  eingeschraenkt,
 }: {
   anbieter: string | null;
   gemessenMbps: number | null;
@@ -750,6 +773,7 @@ function TarifClaim({
   wechselPartner: string | null;
   messungId: string | null;
   stempel: Messstempel | null;
+  eingeschraenkt: boolean;
 }) {
   const [gewaehlt, setGewaehlt] = useState<Tarif | null>(null);
   const [alleZeigen, setAlleZeigen] = useState(false);
@@ -789,10 +813,14 @@ function TarifClaim({
    * Korrigiert der Nutzer den Vertrag später, läuft das hier erneut, aber
    * unter derselben Kennung: Er hat nicht neu gemessen, dieselbe Messung
    * gehört nur zu einem anderen Vertrag.
+   *
+   * Eine gedrosselte Messung bleibt draussen. Eine Messreihe entscheidet
+   * später darüber, ob jemand seinen Anbieter anschreibt — eine Zahl, von der
+   * wir wissen, dass der Browser sie verdorben hat, darf da nicht hinein.
    */
   const tarifWaehlen = (tarif: Tarif) => {
     setGewaehlt(tarif);
-    if (!stempel || gemessenMbps == null || gemessenMbps <= 0) return;
+    if (eingeschraenkt || !stempel || gemessenMbps == null || gemessenMbps <= 0) return;
     setVerlauf(
       verlaufEintragen({
         id: stempel.id,
@@ -1049,20 +1077,27 @@ function TarifClaim({
 
             Nie beides auf einem Schirm — bei schlechtem Urteil steckt dasselbe
             Regal schon in der vierten Stufe. Zwei Werbeblöcke untereinander
-            machten aus der Leiter eine Verkaufsstrecke. */}
+            machten aus der Leiter eine Verkaufsstrecke.
+
+            Und bei gedrosselter Messung tritt an die Stelle der Leiter der
+            eine Schritt, der jetzt zählt: noch einmal messen. */}
         {ton !== "gut" ? (
-          <WieEsWeitergeht
-            tarif={gewaehlt}
-            gemessenMbps={gemessenMbps}
-            connection={connection}
-            kundennummerAusRechnung={kundennummerAusRechnung}
-            rechnungsBild={rechnungsBild}
-            ton={ton}
-            wechselPartner={wechselPartner}
-            messungId={messungId}
-            fenster={urteilsFenster(verlauf, gewaehlt.slug)}
-            heute={stempel?.tag ?? null}
-          />
+          eingeschraenkt ? (
+            <NochmalImVordergrund />
+          ) : (
+            <WieEsWeitergeht
+              tarif={gewaehlt}
+              gemessenMbps={gemessenMbps}
+              connection={connection}
+              kundennummerAusRechnung={kundennummerAusRechnung}
+              rechnungsBild={rechnungsBild}
+              ton={ton}
+              wechselPartner={wechselPartner}
+              messungId={messungId}
+              fenster={urteilsFenster(verlauf, gewaehlt.slug)}
+              heute={stempel?.tag ?? null}
+            />
+          )
         ) : (
           wechselPartner && (
             <PreisEinordnung
@@ -1075,6 +1110,30 @@ function TarifClaim({
           )
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Was nach einer gedrosselten Messung zu tun ist — anstelle der Handlungsleiter.
+ *
+ * Die Leiter fehlt hier mit Absicht: Jede ihrer Stufen baut auf der gemessenen
+ * Zahl auf. Wer wegen einer Zahl, die der Browser verdorben hat, sein Gerät ans
+ * LAN-Kabel schleppt, verliert einen Abend; wer deswegen seinen Anbieter
+ * anschreibt, blamiert sich. Also erst die saubere Messung, dann der nächste
+ * Schritt — es ist nur ein Tap.
+ */
+function NochmalImVordergrund() {
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-left dark:border-amber-900 dark:bg-amber-950">
+      <div className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+        Was jetzt zu tun ist
+      </div>
+      <p className="text-sm leading-6 text-amber-900 dark:text-amber-200">
+        <span className="font-semibold">Miss noch einmal — mit dieser Seite im Vordergrund.</span>{" "}
+        Erst dann sagt die Zahl etwas über deine Leitung. Wie es weitergeht, zeigen wir dir
+        danach: Für ein Schreiben an deinen Anbieter taugt diese Messung nicht.
+      </p>
     </div>
   );
 }
