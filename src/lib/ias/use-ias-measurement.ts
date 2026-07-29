@@ -188,6 +188,11 @@ export function useIasMeasurement() {
   const runIdRef = useRef(0);
   const runningRef = useRef(false);
   const waechterRef = useRef<ReturnType<typeof waechterStarten> | null>(null);
+  /**
+   * Merkzettel für einen Lauf, den das Aufräumen unter sich begraben hat.
+   * Warum es ihn braucht, steht am Effekt ganz unten.
+   */
+  const wiederaufnehmenRef = useRef(false);
 
   /** Stellt den Wächter ab — jeder Weg aus einer Messung führt hier vorbei. */
   const waechterAbstellen = useCallback(() => {
@@ -206,14 +211,6 @@ export function useIasMeasurement() {
       runningRef.current = false;
     }
   }, [waechterAbstellen]);
-
-  // Beim Verlassen der Seite laufende Messung abbrechen.
-  useEffect(() => {
-    return () => {
-      runIdRef.current += 1;
-      stop();
-    };
-  }, [stop]);
 
   const start = useCallback(async () => {
     if (runningRef.current) return;
@@ -323,6 +320,45 @@ export function useIasMeasurement() {
     window.iasMeasurement = new window.IASMeasurement();
     window.iasMeasurement.measurementControl(buildParams("start"));
   }, [stop, waechterAbstellen]);
+
+  /**
+   * Abbruch und Wiederaufnahme — das Paar, das die Seite am Leben hält.
+   *
+   * Beim Verlassen der Seite muss eine laufende Messung enden, sonst lädt sie
+   * im Verborgenen weiter Megabyte herunter. Genau dafür ist das Aufräumen da.
+   *
+   * ABER: React ruft das Aufräumen im Entwicklungs-Modus auch dann auf, wenn
+   * die Komponente bleibt. Der Strict Mode hängt jede frisch aufgebaute
+   * Komponente einmal probeweise aus und wieder ein — er sucht Paare, bei denen
+   * das Wiedereinhängen nicht heil herauskommt. Bei uns fand er eins.
+   *
+   * Nachgemessen am Weg von der Startseite (`/messung?start=1`, Client-seitige
+   * Navigation — beim direkten Aufruf der Seite lässt React die Probe aus, und
+   * genau deshalb fiel es lange nicht auf): Der Auto-Start setzt die Messung in
+   * Gang, unmittelbar darauf räumt die Probe sie weg und zählt `runIdRef` hoch.
+   * Der bereits laufende Lauf hängt zu diesem Zeitpunkt noch im `await` auf die
+   * Messbibliothek. Kommt er zurück, findet er eine fremde Lauf-Nummer und
+   * kehrt still um. Neu gestartet hat ihn niemand, denn der Auto-Start ist per
+   * Ref gegen einen zweiten Aufruf gesichert. Ergebnis: Die Anzeige stand für
+   * immer auf "Messtechnik wird geladen …", ohne Fehler, ohne Ende.
+   *
+   * Deshalb ist der Abbruch nicht mehr das Ende, sondern eine Notiz: Lief noch
+   * etwas, wird es beim nächsten Einhängen neu gestartet. Beim echten Verlassen
+   * der Seite kommt kein Einhängen mehr — dort bleibt es beim Abbruch, und der
+   * Merkzettel verschwindet mit der Komponente.
+   */
+  useEffect(() => {
+    if (wiederaufnehmenRef.current) {
+      wiederaufnehmenRef.current = false;
+      void start();
+    }
+    return () => {
+      // Erst merken, dann abbrechen — `stop()` setzt `runningRef` zurück.
+      wiederaufnehmenRef.current = runningRef.current;
+      runIdRef.current += 1;
+      stop();
+    };
+  }, [start, stop]);
 
   return { ...state, start, stop };
 }
