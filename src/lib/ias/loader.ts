@@ -83,18 +83,83 @@ function protokollStummschalten(): void {
   global.logDebug = false;
 }
 
+/**
+ * So lange darf das Laden der Messbibliothek dauern, bevor wir aufgeben.
+ *
+ * WARUM ES DIESE FRIST GIBT: Ein `<script>`-Element meldet sich nur bei Erfolg
+ * (`onload`) oder bei einem klaren Fehlschlag (`onerror`). Bleibt die Anfrage
+ * einfach stehen — hängender Proxy, eingeschlafenes Mobilfunknetz, ein Netz,
+ * das Pakete verschluckt statt sie abzulehnen —, kommt keins von beidem. Ohne
+ * Frist wartet die Kette dann für immer, und die Seite steht ohne
+ * Fehlermeldung auf "Messtechnik wird geladen …". Der Wächter in
+ * `use-ias-measurement.ts` greift hier noch nicht: Er bewacht die laufende
+ * Messung, und die hat zu diesem Zeitpunkt nicht einmal begonnen.
+ *
+ * 20 Sekunden für die fünf Dateien (zusammen rund 100 KB) sind reichlich —
+ * das entspricht 5 KB/s und liegt unter allem, worüber sich überhaupt messen
+ * ließe. Wer das reißt, lädt nicht langsam, sondern gar nicht.
+ */
+export const LADE_FRIST_MS = 20_000;
+
+/**
+ * Der Fehler, mit dem ein zu langer Ladevorgang endet.
+ *
+ * Der Text nennt die Frist, rechnet sie aber aus der Konstanten aus: Sonst
+ * stünde nach der ersten Änderung der Frist eine falsche Zahl auf dem Schirm.
+ */
+export function ladeFristFehler(): Error {
+  return new Error(
+    `Die Messtechnik ließ sich nicht laden — nach ${Math.round(LADE_FRIST_MS / 1000)} Sekunden war sie immer noch nicht da. Bitte prüfe deine Internetverbindung und starte die Messung noch einmal.`
+  );
+}
+
+/**
+ * Legt eine Frist um ein Versprechen.
+ *
+ * Kommt es rechtzeitig, wird die Uhr abgeräumt und alles bleibt, wie es war —
+ * auch ein Fehlschlag wird unverändert durchgereicht und NICHT als
+ * Fristablauf verkleidet. Erst wenn gar nichts kommt, greift `fehler()`.
+ */
+export function mitFrist<T>(
+  versprechen: Promise<T>,
+  frist: number,
+  fehler: () => Error
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const uhr = setTimeout(() => reject(fehler()), frist);
+    versprechen.then(
+      (wert) => {
+        clearTimeout(uhr);
+        resolve(wert);
+      },
+      (grund) => {
+        clearTimeout(uhr);
+        reject(grund);
+      }
+    );
+  });
+}
+
 /** Lädt die Engine genau einmal (idempotent), in garantierter Reihenfolge. */
 export function loadIasEngine(): Promise<void> {
   const ablage = merkerAblage();
   let laufend = ablage[LADE_MERKER];
   if (!laufend) {
-    laufend = nacheinander(IAS_WERKZEUG)
-      .then(protokollStummschalten)
-      .then(() => nacheinander(IAS_MESSWERK));
-    ablage[LADE_MERKER] = laufend;
-    laufend.catch(() => {
-      // Bei Fehlschlag darf ein erneuter Versuch frisch starten.
-      delete ablage[LADE_MERKER];
+    const dieser = mitFrist(
+      nacheinander(IAS_WERKZEUG)
+        .then(protokollStummschalten)
+        .then(() => nacheinander(IAS_MESSWERK)),
+      LADE_FRIST_MS,
+      ladeFristFehler
+    );
+    laufend = dieser;
+    ablage[LADE_MERKER] = dieser;
+    dieser.catch(() => {
+      // Bei Fehlschlag darf ein erneuter Versuch frisch starten — aber nur,
+      // wenn der Merker noch zu DIESEM Versuch gehört. Seit es die Frist gibt,
+      // kann ein alter Versuch lange nach seinem Ende noch hier ankommen; ohne
+      // die Prüfung räumte er einem gesunden neuen Versuch den Merker weg.
+      if (ablage[LADE_MERKER] === dieser) delete ablage[LADE_MERKER];
     });
   }
   return laufend;
