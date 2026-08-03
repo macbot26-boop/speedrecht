@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { Fusszeile } from "@/components/fusszeile";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import "./globals.css";
 
@@ -36,7 +38,14 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         {children}
+        {/* Auf jeder Seite, nicht je Seite einzeln: Das Impressum muss von
+            überall erreichbar sein. Siehe components/fusszeile.tsx. */}
+        <Fusszeile />
         <ServiceWorkerRegistration />
+        {/* Reichweitenmessung ohne Cookie — es wird nichts auf dem Gerät
+            abgelegt, deshalb ohne Einwilligungsbanner. Beschrieben in
+            lib/rechtliches/verarbeiter.ts und auf /datenschutz. */}
+        <Analytics />
       </body>
     </html>
   );

@@ -1,32 +1,26 @@
 // Zugangs-Gate für die private Testphase.
 //
 // Solange die Umgebungsvariable ACCESS_CODE gesetzt ist (Vercel: Production
-// + Preview), ist die App nur mit Einladungscode nutzbar — es gibt noch
-// keine Rechtstexte (Impressum/Datenschutz), also bleibt die Tür zu.
+// + Preview), ist die App nur mit Einladungscode nutzbar.
 // Lokal ist ACCESS_CODE nicht gesetzt → alles offen.
+//
+// Welche Pfade das Gate durchlassen, entscheidet `istOeffentlich` in
+// src/lib/gate.ts — dort steht auch, warum Impressum und
+// Datenschutzerklärung an die Echtheit der Anbieterangaben gekoppelt sind.
+// Die Regel liegt in der Bibliothek und nicht hier, weil sie sich dort ohne
+// Browser prüfen lässt.
 //
 // (In Next.js 16 heißt die frühere "Middleware" jetzt "Proxy".)
 
 import { NextResponse, type NextRequest } from "next/server";
-import { GATE_COOKIE, gateCookieValue } from "@/lib/gate";
-
-// Diese Pfade bleiben immer erreichbar: die Code-Eingabe selbst und
-// harmlose statische PWA-Dateien.
-const ALWAYS_PUBLIC = new Set([
-  "/zugang",
-  "/api/zugang",
-  "/icon.svg",
-  "/manifest.webmanifest",
-  "/sw.js",
-  "/favicon.ico",
-]);
+import { GATE_COOKIE, gateCookieValue, istOeffentlich } from "@/lib/gate";
 
 export async function proxy(request: NextRequest) {
   const code = process.env.ACCESS_CODE;
   if (!code) return NextResponse.next();
 
   const { pathname } = request.nextUrl;
-  if (ALWAYS_PUBLIC.has(pathname)) return NextResponse.next();
+  if (istOeffentlich(pathname)) return NextResponse.next();
 
   const cookie = request.cookies.get(GATE_COOKIE)?.value;
   if (cookie && cookie === (await gateCookieValue(code))) {
