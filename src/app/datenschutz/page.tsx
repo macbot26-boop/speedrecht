@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   robots: angabenSindEcht() ? undefined : { index: false, follow: false },
 };
 
-const HERVOR = "font-medium text-zinc-900 dark:text-zinc-100";
+const HERVOR = "font-medium text-tinte";
 
 export default function DatenschutzPage() {
   return (
@@ -42,7 +42,7 @@ export default function DatenschutzPage() {
             "Es gibt keine Werbe-Cookies und keine Wiedererkennung über Websites hinweg. Deshalb siehst du hier auch keinen Cookie-Banner.",
           ].map((satz) => (
             <li key={satz} className={`${PROSA} flex gap-2`}>
-              <span aria-hidden className="text-[#0b57d0] dark:text-blue-400">
+              <span aria-hidden className="text-signal-schrift">
                 •
               </span>
               <span>{satz}</span>
@@ -58,7 +58,7 @@ export default function DatenschutzPage() {
           <span className={HERVOR}>{ANBIETER.email}</span>. Vollständige Angaben im{" "}
           <a
             href="/impressum"
-            className="text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+            className="text-signal-schrift underline underline-offset-2"
           >
             Impressum
           </a>
@@ -221,17 +221,17 @@ export default function DatenschutzPage() {
           {EMPFAENGER.map((e) => (
             <div
               key={e.name}
-              className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950"
+              className="rounded-xl border border-linie bg-flaeche-tief px-4 py-3"
             >
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{e.name}</p>
+                <p className="text-sm font-semibold text-tinte">{e.name}</p>
                 {e.nurMitEinwilligung && (
                   <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200">
                     nur mit deiner Einwilligung
                   </span>
                 )}
               </div>
-              <p className="mt-1.5 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+              <p className="mt-1.5 text-sm leading-6 text-tinte-mittel">
                 {e.zweck}
               </p>
               <dl className="mt-2 flex flex-col gap-1">
@@ -242,7 +242,7 @@ export default function DatenschutzPage() {
                 ].map(([bezeichnung, wert]) => (
                   <div key={bezeichnung} className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
                     <dt className={`${LEISE} sm:w-28 sm:shrink-0`}>{bezeichnung}</dt>
-                    <dd className="text-xs leading-6 text-zinc-600 dark:text-zinc-400">{wert}</dd>
+                    <dd className="text-xs leading-6 text-tinte-mittel">{wert}</dd>
                   </div>
                 ))}
               </dl>
@@ -262,15 +262,15 @@ export default function DatenschutzPage() {
           {GERAETEABLAGE.map((a) => (
             <div
               key={a.schluessel}
-              className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950"
+              className="rounded-xl border border-linie bg-flaeche-tief px-4 py-3"
             >
               <div className="flex flex-wrap items-baseline gap-2">
-                <code className="rounded bg-zinc-200 px-1.5 py-0.5 font-mono text-xs text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100">
+                <code className="rounded bg-linie px-1.5 py-0.5 font-mono text-xs text-tinte">
                   {a.schluessel}
                 </code>
                 <span className={LEISE}>{a.art}</span>
               </div>
-              <p className="mt-1.5 text-sm leading-6 text-zinc-700 dark:text-zinc-300">{a.zweck}</p>
+              <p className="mt-1.5 text-sm leading-6 text-tinte-mittel">{a.zweck}</p>
               <p className={`${LEISE} mt-1`}>
                 Dauer: {a.dauer} · {a.grundlage}
               </p>
@@ -309,7 +309,7 @@ export default function DatenschutzPage() {
           vollständige Änderungsgeschichte steht öffentlich{" "}
           <a
             href="https://github.com/macbot26-boop/speedrecht"
-            className="text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+            className="text-signal-schrift underline underline-offset-2"
           >
             im Quellcode
           </a>
