@@ -20,14 +20,14 @@
 import Link from "next/link";
 
 const VERWEIS =
-  "text-zinc-600 underline decoration-zinc-300 underline-offset-2 transition hover:text-zinc-900 dark:text-zinc-400 dark:decoration-zinc-700 dark:hover:text-zinc-200";
+  "text-tinte-mittel underline decoration-linie-stark underline-offset-2 transition hover:text-tinte";
 
 export function Fusszeile() {
   return (
-    <footer className="mt-auto border-t border-zinc-200 bg-white px-6 py-6 dark:border-zinc-900 dark:bg-black">
+    <footer className="mt-auto border-t border-linie bg-papier px-6 py-6">
       <nav
         aria-label="Rechtliches"
-        className="mx-auto flex w-full max-w-2xl flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs"
+        className="mx-auto flex w-full max-w-2xl flex-wrap items-center justify-center gap-x-5 gap-y-2 font-mono text-xs"
       >
         <Link href="/impressum" className={VERWEIS}>
           Impressum
