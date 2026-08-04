@@ -50,6 +50,7 @@ import { briefBauen, type Verbindung } from "@/lib/brief/text.ts";
 import { anschriftZeilen, kontaktFuer } from "@/lib/brief/kontakte.ts";
 import { briefHtml, mailtoUrl } from "@/lib/brief/versand.ts";
 import { klickPfad } from "@/lib/wechsel/klick.ts";
+import { MessSchreiber } from "@/components/mess-schreiber";
 
 // Statische Tarif-Tabelle (aus den Produktinformationsblättern erzeugt).
 // Der JSON-Import ist strukturell die TarifDaten-Form.
@@ -523,6 +524,16 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
         </p>
       </div>
 
+      {/* Der Schreiber zeichnet die Messung, während sie läuft — aus Zahlen,
+          die ohnehin schon da sind. Kein Nachladen: Was hier während der
+          Messung Bytes zöge, würde den gemessenen Wert drücken. */}
+      <MessSchreiber
+        phase={phase}
+        rttMs={rttMs}
+        downloadMbps={downloadMbps}
+        uploadMbps={uploadMbps}
+      />
+
       <div className="flex flex-col items-center gap-2.5">
         <p
           className="text-sm font-medium text-tinte-mittel"
@@ -578,8 +589,13 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
         </p>
       </div>
 
-      <p className="text-xs text-tinte-leise">
-        Bitte lass diese Seite offen — die Messung dauert etwa 30 Sekunden.
+      {/* Der Grund steht dabei, nicht nur die Bitte. Ein Tab im Hintergrund
+          wird vom Browser ausgebremst — dann fallen die Zahlen zu niedrig aus
+          (belegt in messbedingungen.ts). Wer das weiß, bleibt; wer nur „bitte
+          bleib" liest, wechselt trotzdem. */}
+      <p className="max-w-md text-xs leading-5 text-tinte-leise">
+        Bleib solange auf dieser Seite — etwa 30 Sekunden. Wechselst du den Tab,
+        bremst der Browser die Messung aus, und die Zahlen stimmen nicht mehr.
       </p>
     </div>
   );

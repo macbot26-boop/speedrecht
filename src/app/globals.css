@@ -37,6 +37,10 @@
   --signal-aktiv: #1d31b8;
   --signal-schrift: #2137c8;
   --signal-hauch: #edeffc;
+  /* Der Ton der Messkurven. Eigener Token, weil eine Linie andere Ansprüche
+     hat als eine Fläche: Sie ist 2 px dünn und muss trotzdem gegen den
+     Untergrund stehen (Ziel ≥ 3:1). Am Tag genügt dafür der Signalton. */
+  --signal-kurve: #2740e0;
 
   /* Das feine Messraster im Hintergrund */
   --rasterlinie: rgba(25, 26, 31, 0.045);
@@ -65,6 +69,9 @@
     --signal-aktiv: #5468f5;
     --signal-schrift: #97a8ff;
     --signal-hauch: #181d33;
+    /* Bei Nacht eigens heller gewählt statt bloß umgeschaltet: Der Signalton
+       käme auf dem dunklen Papier nur auf 3,5:1, dieser hier auf 4,7:1. */
+    --signal-kurve: #5a70f5;
 
     --rasterlinie: rgba(236, 238, 231, 0.035);
   }
@@ -86,6 +93,7 @@
   --color-signal-aktiv: var(--signal-aktiv);
   --color-signal-schrift: var(--signal-schrift);
   --color-signal-hauch: var(--signal-hauch);
+  --color-signal-kurve: var(--signal-kurve);
 
   --font-sans: var(--font-instrument-sans);
   --font-mono: var(--font-plex-mono);
@@ -177,6 +185,67 @@ body {
   100% {
     opacity: 0;
     transform: scale(2.4);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Der Schreiber während der Messung (components/mess-schreiber.tsx).
+
+   Beide Animationen bewegen NUR `transform` bzw. `opacity` — die zwei
+   Eigenschaften, die der Browser ohne neues Layout und ohne neues Malen
+   bewegen kann. Das ist hier kein Feinschliff: Auf schnellen Anschlüssen
+   ist die Messung selbst rechenlastig, und was den Hauptthread beschäftigt,
+   drückt den gemessenen Wert.
+
+   Der Suchlauf läuft ausserdem nur, solange noch keine Zahl vorliegt — also
+   bevor die Durchsatzmessung überhaupt beginnt.
+--------------------------------------------------------------------------- */
+
+.schreiber-suchlauf {
+  animation: schreiber-suchlauf 2.4s ease-in-out infinite;
+}
+
+.schreiber-spitze {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: schreiber-spitze 1.6s ease-out infinite;
+}
+
+@keyframes schreiber-suchlauf {
+  0% {
+    transform: translateX(0);
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateX(520px);
+    opacity: 0.15;
+  }
+}
+
+@keyframes schreiber-spitze {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.7);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+/* Der Suchlauf ist reine Bewegung — ohne sie bliebe nur ein Strich, der
+   angehalten am rechten Rand klebt. Dann lieber gar keiner; „warte auf
+   Daten …" steht ohnehin daneben. */
+@media (prefers-reduced-motion: reduce) {
+  .schreiber-suchlauf {
+    display: none;
   }
 }
 
