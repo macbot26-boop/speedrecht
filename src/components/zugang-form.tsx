@@ -38,7 +38,7 @@ export function ZugangForm({ target }: { target: string }) {
         placeholder="Einladungscode"
         autoFocus
         autoComplete="off"
-        className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-center text-lg tracking-widest text-zinc-900 outline-none focus:border-[#0b57d0] dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-blue-400"
+        className="w-full rounded-xl border border-linie-stark bg-flaeche px-4 py-3 text-center text-lg tracking-widest text-tinte outline-none focus:border-signal"
       />
       {status === "wrong" && (
         <p className="text-sm text-red-600 dark:text-red-400">
@@ -48,7 +48,7 @@ export function ZugangForm({ target }: { target: string }) {
       <button
         type="submit"
         disabled={status === "checking" || !code.trim()}
-        className="rounded-xl bg-[#0b57d0] px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+        className="rounded-xl bg-signal px-6 py-3 text-sm font-semibold text-white transition hover:bg-signal-aktiv disabled:opacity-50"
       >
         {status === "checking" ? "Wird geprüft …" : "Weiter"}
       </button>

@@ -1,26 +1,272 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------------
+   Speedrecht — „Ruhiges Messinstrument"
+
+   Ein Auftritt, zwei Stimmungen: warmes Messpapier am Tag, Instrumententafel
+   bei Nacht. Alle Farben hängen an semantischen Variablen, die hier EINMAL
+   je Modus definiert sind — Komponenten brauchen damit für neue Flächen
+   keine dark:-Varianten mehr.
+
+   Schriften (alle selbst ausgeliefert über next/font, siehe layout.tsx —
+   die Datenschutzerklärung verspricht: keine Verbindung zu Google):
+   - Fraunces        → Überschriften und Urteilssätze (die „Stimme")
+   - Instrument Sans → Fließtext und Bedienelemente
+   - IBM Plex Mono   → Messwerte, Schwellen, Beschriftungen am Instrument
+--------------------------------------------------------------------------- */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+
+  /* Flächen */
+  --papier: #f6f5f1;
+  --flaeche: #ffffff;
+  --flaeche-tief: #f1efe9;
+
+  /* Linien */
+  --linie: #e5e2d9;
+  --linie-stark: #cfccc0;
+
+  /* Text */
+  --tinte: #191a1f;
+  --tinte-mittel: #4b4d57;
+  --tinte-leise: #7d7f8a;
+
+  /* Akzent „Signal" — geprüft gegen beide Flächen (dataviz-Validator) */
+  --signal: #2740e0;
+  --signal-aktiv: #1d31b8;
+  --signal-schrift: #2137c8;
+  --signal-hauch: #edeffc;
+  /* Der Ton der Messkurven. Eigener Token, weil eine Linie andere Ansprüche
+     hat als eine Fläche: Sie ist 2 px dünn und muss trotzdem gegen den
+     Untergrund stehen (Ziel ≥ 3:1). Am Tag genügt dafür der Signalton. */
+  --signal-kurve: #2740e0;
+
+  /* Das feine Messraster im Hintergrund */
+  --rasterlinie: rgba(25, 26, 31, 0.045);
+
+  /* Alt-Variablen, auf denen frühe Komponenten aufsetzen */
+  --background: var(--papier);
+  --foreground: var(--tinte);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --papier: #0c0e13;
+    --flaeche: #14161e;
+    --flaeche-tief: #1a1d27;
+
+    --linie: #262a35;
+    --linie-stark: #363b49;
+
+    --tinte: #eceee7;
+    --tinte-mittel: #a3a6b0;
+    --tinte-leise: #71747f;
+
+    --signal: #3d55f0;
+    --signal-aktiv: #5468f5;
+    --signal-schrift: #97a8ff;
+    --signal-hauch: #181d33;
+    /* Bei Nacht eigens heller gewählt statt bloß umgeschaltet: Der Signalton
+       käme auf dem dunklen Papier nur auf 3,5:1, dieser hier auf 4,7:1. */
+    --signal-kurve: #5a70f5;
+
+    --rasterlinie: rgba(236, 238, 231, 0.035);
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --color-papier: var(--papier);
+  --color-flaeche: var(--flaeche);
+  --color-flaeche-tief: var(--flaeche-tief);
+  --color-linie: var(--linie);
+  --color-linie-stark: var(--linie-stark);
+  --color-tinte: var(--tinte);
+  --color-tinte-mittel: var(--tinte-mittel);
+  --color-tinte-leise: var(--tinte-leise);
+  --color-signal: var(--signal);
+  --color-signal-aktiv: var(--signal-aktiv);
+  --color-signal-schrift: var(--signal-schrift);
+  --color-signal-hauch: var(--signal-hauch);
+  --color-signal-kurve: var(--signal-kurve);
+
+  --font-sans: var(--font-instrument-sans);
+  --font-mono: var(--font-plex-mono);
+  --font-display: var(--font-fraunces);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  /* Anker wie /#so-funktionierts gleiten, statt zu springen. */
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--papier);
+  /* Das Messraster: zwei Linienscharen, bewusst so leise, dass es erst auf
+     den zweiten Blick auffällt. Karten liegen als ruhige Flächen darüber. */
+  background-image:
+    linear-gradient(var(--rasterlinie) 1px, transparent 1px),
+    linear-gradient(90deg, var(--rasterlinie) 1px, transparent 1px);
+  background-size: 28px 28px;
+  color: var(--tinte);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--signal) 22%, transparent);
+}
+
+/* Sichtbarer Tastatur-Fokus — überall gleich, statt je Element erfunden.
+   Bewusst OHNE border-radius: Diese Regel liegt außerhalb der Tailwind-
+   Schichten und schlüge deren rounded-*-Klassen — ein Pillen-Knopf würde im
+   Fokus eckig. Die Umrandung folgt der Rundung des Elements von selbst. */
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+   Der Messschrieb der Startseite (components/messschrieb.tsx):
+   Die Kurve zeichnet sich wie von einem Schreibstift, die Punkte erscheinen
+   im Takt, die Spitze pulsiert leise weiter. Alles reine CSS-Animation —
+   dank `pathLength=1` am SVG-Pfad ohne gemessene Pfadlängen.
+--------------------------------------------------------------------------- */
+
+.messschrieb-linie {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: messschrieb-zeichnen 2.4s cubic-bezier(0.4, 0, 0.2, 1) 0.2s forwards;
+}
+
+.messschrieb-flaeche {
+  opacity: 0;
+  animation: messschrieb-einblenden 0.9s ease-out 2.1s forwards;
+}
+
+.messschrieb-punkt {
+  opacity: 0;
+  animation: messschrieb-einblenden 0.35s ease-out forwards;
+}
+
+.messschrieb-puls {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: messschrieb-puls 2.2s ease-out 2.7s infinite;
+}
+
+@keyframes messschrieb-zeichnen {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes messschrieb-einblenden {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes messschrieb-puls {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.6);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Der Schreiber während der Messung (components/mess-schreiber.tsx).
+
+   Beide Animationen bewegen NUR `transform` bzw. `opacity` — die zwei
+   Eigenschaften, die der Browser ohne neues Layout und ohne neues Malen
+   bewegen kann. Das ist hier kein Feinschliff: Auf schnellen Anschlüssen
+   ist die Messung selbst rechenlastig, und was den Hauptthread beschäftigt,
+   drückt den gemessenen Wert.
+
+   Der Suchlauf läuft ausserdem nur, solange noch keine Zahl vorliegt — also
+   bevor die Durchsatzmessung überhaupt beginnt.
+--------------------------------------------------------------------------- */
+
+.schreiber-suchlauf {
+  animation: schreiber-suchlauf 2.4s ease-in-out infinite;
+}
+
+.schreiber-spitze {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: schreiber-spitze 1.6s ease-out infinite;
+}
+
+@keyframes schreiber-suchlauf {
+  0% {
+    transform: translateX(0);
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateX(520px);
+    opacity: 0.15;
+  }
+}
+
+@keyframes schreiber-spitze {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.7);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+/* Der Suchlauf ist reine Bewegung — ohne sie bliebe nur ein Strich, der
+   angehalten am rechten Rand klebt. Dann lieber gar keiner; „warte auf
+   Daten …" steht ohnehin daneben. */
+@media (prefers-reduced-motion: reduce) {
+  .schreiber-suchlauf {
+    display: none;
+  }
+}
+
+/* Wer weniger Bewegung wünscht, bekommt sofort das fertige Bild:
+   Die Messkurve der Startseite steht dann, statt sich zu zeichnen. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    /* Auch die Verzögerung — sonst bliebe ein verzögertes Element sekundenlang
+       unsichtbar, obwohl seine Animation längst „fertig" ist. Das !important
+       schlägt die je Punkt gesetzten Inline-Verzögerungen des Messschriebs. */
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  body {
+    background-image: none;
+  }
 }

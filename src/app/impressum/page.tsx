@@ -46,11 +46,11 @@ export default function ImpressumPage() {
       <Abschnitt titel="Verantwortlich für den Datenschutz">
         <p className={PROSA}>
           Fragen zu deinen Daten beantworten wir unter{" "}
-          <span className="font-medium text-zinc-900 dark:text-zinc-100">{ANBIETER.email}</span>.
+          <span className="font-medium text-tinte">{ANBIETER.email}</span>.
           Was wir verarbeiten und was nicht, steht in der{" "}
           <a
             href="/datenschutz"
-            className="text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+            className="text-signal-schrift underline underline-offset-2"
           >
             Datenschutzerklärung
           </a>
@@ -62,7 +62,7 @@ export default function ImpressumPage() {
         <p className={PROSA}>
           Speedrecht misst deine Internet-Geschwindigkeit nach der offiziellen
           Messmethodik und vergleicht sie mit deinem Vertrag. Wir sind{" "}
-          <span className="font-medium text-zinc-900 dark:text-zinc-100">unabhängig</span> und
+          <span className="font-medium text-tinte">unabhängig</span> und
           gehören zu keinem Anbieter und keiner Behörde.
         </p>
         <p className={PROSA}>
@@ -70,7 +70,7 @@ export default function ImpressumPage() {
           Bundesnetzagentur unter{" "}
           <a
             href="https://breitbandmessung.de"
-            className="text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+            className="text-signal-schrift underline underline-offset-2"
           >
             breitbandmessung.de
           </a>
@@ -111,7 +111,7 @@ export default function ImpressumPage() {
           liegt offen{" "}
           <a
             href="https://github.com/macbot26-boop/speedrecht"
-            className="text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+            className="text-signal-schrift underline underline-offset-2"
           >
             auf GitHub
           </a>

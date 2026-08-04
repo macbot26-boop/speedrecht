@@ -50,6 +50,7 @@ import { briefBauen, type Verbindung } from "@/lib/brief/text.ts";
 import { anschriftZeilen, kontaktFuer } from "@/lib/brief/kontakte.ts";
 import { briefHtml, mailtoUrl } from "@/lib/brief/versand.ts";
 import { klickPfad } from "@/lib/wechsel/klick.ts";
+import { MessSchreiber } from "@/components/mess-schreiber";
 
 // Statische Tarif-Tabelle (aus den Produktinformationsblättern erzeugt).
 // Der JSON-Import ist strukturell die TarifDaten-Form.
@@ -274,16 +275,16 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
   if (OHNE_PEER) {
     return (
       <div className="flex w-full max-w-xl flex-col items-center gap-6 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-tinte sm:text-4xl">
           Der Messserver ist noch nicht angeschlossen
         </h1>
-        <p className="text-base leading-7 text-zinc-600 dark:text-zinc-400">
+        <p className="text-base leading-7 text-tinte-mittel">
           Du bist ganz früh dabei: In dieser privaten Testphase steht der
           öffentliche Messserver noch nicht bereit — Messungen sind deshalb
           hier noch nicht möglich. Sobald er angeschlossen ist, geht es an
           dieser Stelle mit einem Tap los.
         </p>
-        <p className="max-w-md text-xs leading-5 text-zinc-500">
+        <p className="max-w-md text-xs leading-5 text-tinte-leise">
           Gemessen wird dann mit der offiziellen Open-Source-Messmethodik der
           Breitbandmessung gegen unseren eigenen Server — Ergebnisse sind ein
           Indiz, rechtsgültige Nachweise erzeugt nur die offizielle
@@ -298,10 +299,10 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
     return (
       <div className="flex w-full max-w-xl flex-col items-center gap-8 text-center">
         <div className="flex flex-col gap-3">
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-tinte sm:text-4xl">
             Bereit? Ein Tap genügt.
           </h1>
-          <p className="text-base leading-7 text-zinc-600 dark:text-zinc-400">
+          <p className="text-base leading-7 text-tinte-mittel">
             Die Messung dauert etwa eine halbe Minute und überträgt dabei
             einige Megabyte — am besten nicht im Datentarif.
           </p>
@@ -323,11 +324,11 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
         )}
         <button
           onClick={begin}
-          className="rounded-full bg-[#0b57d0] px-10 py-4 text-lg font-semibold text-white shadow-sm transition hover:bg-blue-700"
+          className="rounded-full bg-signal px-10 py-4 text-lg font-semibold text-white shadow-[0_10px_24px_-10px_var(--signal)] transition hover:bg-signal-aktiv"
         >
           Messung starten
         </button>
-        <p className="max-w-md text-xs leading-5 text-zinc-500">
+        <p className="max-w-md text-xs leading-5 text-tinte-leise">
           Gemessen wird mit der offiziellen Open-Source-Messmethodik der
           Breitbandmessung (4 parallele Datenströme, 10-Sekunden-Fenster) gegen
           unseren eigenen Messserver. Ergebnisse sind ein Indiz — rechtsgültige
@@ -341,7 +342,7 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
   if (phase === "error") {
     return (
       <div className="flex w-full max-w-xl flex-col items-center gap-6 text-center">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+        <h1 className="font-display text-2xl font-semibold text-tinte sm:text-3xl">
           Die Messung hat nicht geklappt
         </h1>
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
@@ -349,7 +350,7 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
         </p>
         <button
           onClick={begin}
-          className="rounded-full bg-[#0b57d0] px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+          className="rounded-full bg-signal px-6 py-3 text-sm font-semibold text-white transition hover:bg-signal-aktiv"
         >
           Nochmal versuchen
         </button>
@@ -361,7 +362,7 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
   if (phase === "done" && result) {
     return (
       <div className="flex w-full max-w-xl flex-col items-center gap-8 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-tinte sm:text-3xl">
           Dein Ergebnis
         </h1>
 
@@ -427,7 +428,7 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
 
         {/* Ehrlichkeits-Labels — Produktgesetz, nicht verhandelbar */}
         <div className="flex w-full flex-col gap-2 text-left">
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm leading-6 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+          <div className="rounded-xl border border-linie bg-flaeche-tief px-4 py-3 text-sm leading-6 text-tinte-mittel">
             <span className="font-semibold">Indiz, kein Rechtsbeweis.</span>{" "}
             Gemessen mit der offiziellen Messmethodik, aber gegen unseren
             eigenen Server. Vor Gericht zählt nur die offizielle{" "}
@@ -450,7 +451,7 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
             </div>
           )}
           {(connection === "unknown" || connection === null) && (
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm leading-6 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+            <div className="rounded-xl border border-linie bg-flaeche-tief px-4 py-3 text-sm leading-6 text-tinte-mittel">
               Verbindungsart unbekannt — falls du über WLAN gemessen hast, kann
               dein Heim-WLAN das Ergebnis beeinflussen.
             </div>
@@ -480,11 +481,11 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
         <div className="flex flex-col items-center gap-2">
           <button
             onClick={begin}
-            className="rounded-full bg-[#0b57d0] px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+            className="rounded-full bg-signal px-6 py-3 text-sm font-semibold text-white transition hover:bg-signal-aktiv"
           >
             Nochmal messen
           </button>
-          <p className="text-xs text-zinc-400 dark:text-zinc-500">
+          <p className="text-xs text-tinte-leise">
             {saveState === "saved" &&
               "Ergebnis anonym gespeichert (ohne IP-Adresse)."}
             {saveState === "saving" && "Ergebnis wird gespeichert …"}
@@ -506,45 +507,65 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
 
   return (
     <div className="flex w-full max-w-xl flex-col items-center gap-8 text-center">
-      <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+      <h1 className="font-display text-2xl font-semibold tracking-tight text-tinte sm:text-3xl">
         Messung läuft …
       </h1>
 
       <div className="flex flex-col items-center gap-1">
-        <p className="font-mono text-6xl font-semibold tabular-nums text-[#0b57d0] dark:text-blue-400">
+        {/* Feste Mindesthöhe, damit der Schirm beim Phasenwechsel nicht
+            springt — die eine große Zahl ist das ganze Bild. */}
+        <p className="min-h-[1.1em] font-mono text-6xl font-medium leading-none tracking-tight tabular-nums text-signal-schrift sm:text-7xl">
           {phase === "rtt"
             ? (rttMs !== null ? rttMs.toFixed(0) : "–")
             : formatMbps(liveValue)}
         </p>
-        <p className="text-sm text-zinc-500">
+        <p className="font-mono text-sm text-tinte-leise">
           {phase === "rtt" ? "ms" : "Mbit/s"}
         </p>
       </div>
 
-      <div className="flex flex-col items-center gap-2">
+      {/* Der Schreiber zeichnet die Messung, während sie läuft — aus Zahlen,
+          die ohnehin schon da sind. Kein Nachladen: Was hier während der
+          Messung Bytes zöge, würde den gemessenen Wert drücken. */}
+      <MessSchreiber
+        phase={phase}
+        rttMs={rttMs}
+        downloadMbps={downloadMbps}
+        uploadMbps={uploadMbps}
+      />
+
+      <div className="flex flex-col items-center gap-2.5">
         <p
-          className="text-sm font-medium text-zinc-600 dark:text-zinc-300"
+          className="text-sm font-medium text-tinte-mittel"
           aria-live="polite"
         >
           {PHASE_LABELS[phase] ?? "…"}
         </p>
+        {/* Vier Segmente wie am Gerät: erledigt bleibt gefüllt, das aktive
+            pulsiert — so ist ablesbar, wie weit die Messung ist, nicht nur,
+            DASS sie läuft. */}
         <div className="flex gap-2" aria-hidden>
-          {(["ip", "rtt", "download", "upload"] as const).map((p) => (
-            <span
-              key={p}
-              className={`h-1.5 w-10 rounded-full transition ${
-                phase === p
-                  ? "animate-pulse bg-[#0b57d0] dark:bg-blue-400"
-                  : "bg-zinc-200 dark:bg-zinc-800"
-              }`}
-            />
-          ))}
+          {(["ip", "rtt", "download", "upload"] as const).map((p, i, reihe) => {
+            const aktiv = reihe.indexOf(phase as (typeof reihe)[number]);
+            return (
+              <span
+                key={p}
+                className={`h-1.5 w-10 rounded-full transition ${
+                  i === aktiv
+                    ? "animate-pulse bg-signal"
+                    : i < aktiv
+                      ? "bg-signal/40"
+                      : "bg-linie"
+                }`}
+              />
+            );
+          })}
         </div>
       </div>
 
       {/* Optionale Selbstauskunft — genau in der Wartezeit, wo sie nicht stört */}
       <div className="flex flex-col items-center gap-2">
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        <p className="text-sm text-tinte-mittel">
           Nebenbei: Wie ist dieses Gerät mit dem Router verbunden?
         </p>
         <div className="flex gap-2">
@@ -555,21 +576,26 @@ export function MessungFlow({ wechselPartner }: { wechselPartner: string | null 
               aria-pressed={connection === chip.value}
               className={
                 connection === chip.value
-                  ? "rounded-full bg-[#0b57d0] px-5 py-2 text-sm font-semibold text-white"
-                  : "rounded-full border border-zinc-300 px-5 py-2 text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+                  ? "rounded-full bg-signal px-5 py-2 text-sm font-semibold text-white"
+                  : "rounded-full border border-linie-stark px-5 py-2 text-sm font-medium text-tinte-mittel transition hover:border-signal hover:text-signal-schrift"
               }
             >
               {chip.title}
             </button>
           ))}
         </div>
-        <p className="text-xs text-zinc-400 dark:text-zinc-500">
+        <p className="text-xs text-tinte-leise">
           Keine Angabe? Kein Problem — der Hinweis kommt mit dem Ergebnis.
         </p>
       </div>
 
-      <p className="text-xs text-zinc-400 dark:text-zinc-500">
-        Bitte lass diese Seite offen — die Messung dauert etwa 30 Sekunden.
+      {/* Der Grund steht dabei, nicht nur die Bitte. Ein Tab im Hintergrund
+          wird vom Browser ausgebremst — dann fallen die Zahlen zu niedrig aus
+          (belegt in messbedingungen.ts). Wer das weiß, bleibt; wer nur „bitte
+          bleib" liest, wechselt trotzdem. */}
+      <p className="max-w-md text-xs leading-5 text-tinte-leise">
+        Bleib solange auf dieser Seite — etwa 30 Sekunden. Wechselst du den Tab,
+        bremst der Browser die Messung aus, und die Zahlen stimmen nicht mehr.
       </p>
     </div>
   );
@@ -625,7 +651,7 @@ function AnbieterBestaetigung({
   }
   if (status === "fehler") {
     return (
-      <p className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-left text-sm leading-6 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+      <p className="w-full rounded-xl border border-linie bg-flaeche-tief px-4 py-3 text-left text-sm leading-6 text-tinte-mittel">
         Dein Anbieter konnte gerade nicht vermerkt werden — für deine Messung
         oben ändert das nichts.
       </p>
@@ -635,10 +661,10 @@ function AnbieterBestaetigung({
   const listeZeigen = status === "liste" || !erkannt;
 
   return (
-    <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="w-full rounded-2xl border border-linie bg-flaeche shadow-[0_1px_2px_rgba(0,0,0,0.03)] px-5 py-4 text-left">
       {listeZeigen ? (
         <>
-          <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+          <p className="text-sm leading-6 text-tinte-mittel">
             <span className="font-semibold">Wer ist dein Internetanbieter?</span>{" "}
             Ein Tap genügt — das hilft, Messungen je Anbieter einzuordnen
             (weiterhin anonym).
@@ -649,7 +675,7 @@ function AnbieterBestaetigung({
                 key={anbieter}
                 disabled={status === "sendet"}
                 onClick={() => bestaetigen(anbieter)}
-                className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+                className="rounded-full border border-linie-stark px-4 py-2 text-sm font-medium text-tinte-mittel transition hover:border-signal hover:text-signal-schrift disabled:opacity-50"
               >
                 {anbieter}
               </button>
@@ -658,7 +684,7 @@ function AnbieterBestaetigung({
         </>
       ) : (
         <>
-          <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+          <p className="text-sm leading-6 text-tinte-mittel">
             <span className="font-semibold">Dein Netz: {erkannt}.</span> Ist das
             dein Internetanbieter?
           </p>
@@ -666,14 +692,14 @@ function AnbieterBestaetigung({
             <button
               disabled={status === "sendet"}
               onClick={() => erkannt && bestaetigen(erkannt)}
-              className="rounded-full bg-[#0b57d0] px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-full bg-signal px-5 py-2 text-sm font-semibold text-white transition hover:bg-signal-aktiv disabled:opacity-50"
             >
               Ja, mein Anbieter
             </button>
             <button
               disabled={status === "sendet"}
               onClick={() => setStatus("liste")}
-              className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+              className="rounded-full border border-linie-stark px-4 py-2 text-sm font-medium text-tinte-mittel transition hover:border-signal hover:text-signal-schrift disabled:opacity-50"
             >
               Nein, anderer …
             </button>
@@ -704,12 +730,16 @@ function TarifDeltaBalken({
   if (!(max > 0)) return null;
   const anteil = (wert: number) => Math.max(0, Math.min(100, (wert / max) * 100));
   const breite = anteil(gemessenMbps);
+  // Die 700er/800er-Stufen sind kein Geschmack: Auf der Füllung steht die
+  // gemessene Zahl in Weiß, und erst diese Stufen erreichen dafür die
+  // AA-Kontrastschwelle (4,5:1). Mit 500ern sähe es hübscher aus und wäre
+  // schlechter lesbar — genau die falsche Reihenfolge.
   const fuellFarbe =
     ton === "gut"
-      ? "bg-emerald-500"
+      ? "bg-emerald-800"
       : ton === "unter_min"
-        ? "bg-red-500"
-        : "bg-amber-500";
+        ? "bg-red-600"
+        : "bg-amber-700";
   const marken = [
     tarif.download_min_mbps != null
       ? {
@@ -727,31 +757,33 @@ function TarifDeltaBalken({
 
   return (
     <div className="flex w-full flex-col gap-2">
-      <div className="flex justify-between text-xs font-medium text-zinc-500">
+      <div className="flex items-baseline justify-between gap-3 font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-tinte-leise">
         <span>Du bekommst</span>
-        <span>Bestellt: bis zu {formatMbps(max)} Mbit/s</span>
+        <span className="text-right normal-case tracking-normal">
+          Bestellt: bis zu {formatMbps(max)} Mbit/s
+        </span>
       </div>
-      <div className="relative h-10 rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="relative h-11 rounded-lg border border-linie bg-flaeche-tief">
         <div
-          className={`absolute inset-y-0 left-0 flex min-w-[46px] items-center justify-end rounded-lg pr-2.5 text-sm font-bold tabular-nums text-white ${fuellFarbe}`}
-          style={{ width: `${breite}%` }}
+          className={`absolute inset-y-0 left-0 flex min-w-[52px] items-center justify-end rounded-l-lg pr-2.5 font-mono text-sm font-semibold tabular-nums text-white ${fuellFarbe}`}
+          style={{ width: `${breite}%`, borderRadius: breite > 97 ? "0.5rem" : undefined }}
         >
           {formatMbps(gemessenMbps)}
         </div>
         {marken.map((m) => (
           <div
             key={m.label}
-            className="absolute -bottom-0.5 -top-0.5 w-0.5 rounded bg-zinc-500/60"
+            className="absolute -bottom-1 -top-1 w-0.5 rounded bg-tinte-leise/70"
             style={{ left: `${m.pos}%` }}
             aria-hidden
           />
         ))}
       </div>
       {marken.length > 0 && (
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-medium text-zinc-400">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-tinte-leise">
           {marken.map((m) => (
             <span key={m.label} className="inline-flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-0.5 rounded bg-zinc-400/70" aria-hidden />
+              <span className="inline-block h-2.5 w-0.5 rounded bg-tinte-leise/70" aria-hidden />
               {m.label}
             </span>
           ))}
@@ -905,9 +937,9 @@ function TarifClaim({
     return (
       <div className="flex w-full flex-col gap-3">
         {konfliktWarnung}
-        <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left text-sm leading-6 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+        <div className="w-full rounded-2xl border border-linie bg-flaeche shadow-[0_1px_2px_rgba(0,0,0,0.03)] px-5 py-4 text-left text-sm leading-6 text-tinte-mittel">
           Für{" "}
-          <span className="font-semibold text-zinc-800 dark:text-zinc-200">{anzeigeAnbieter}</span>{" "}
+          <span className="font-semibold text-tinte">{anzeigeAnbieter}</span>{" "}
           haben wir die Tarife noch nicht hinterlegt — der direkte Vergleich mit deinem Vertrag
           kommt bald.
         </div>
@@ -922,8 +954,8 @@ function TarifClaim({
     return (
       <div className="flex w-full flex-col gap-3">
         {konfliktWarnung}
-        <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left dark:border-zinc-800 dark:bg-zinc-950">
-          <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+        <div className="w-full rounded-2xl border border-linie bg-flaeche shadow-[0_1px_2px_rgba(0,0,0,0.03)] px-5 py-4 text-left">
+          <p className="text-sm leading-6 text-tinte-mittel">
             <span className="font-semibold">Fast geschafft.</span> Diese Geschwindigkeit gibt es bei{" "}
             {anzeigeAnbieter} unter mehreren Namen. Welcher steht auf deiner Rechnung?
           </p>
@@ -932,18 +964,18 @@ function TarifClaim({
               <button
                 key={tarif.slug}
                 onClick={() => tarifWaehlen(tarif)}
-                className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+                className="rounded-full border border-linie-stark px-4 py-2 text-sm font-medium text-tinte-mittel transition hover:border-signal hover:text-signal-schrift"
               >
                 {tarif.tarifname}
               </button>
             ))}
           </div>
-          <p className="mt-3 text-xs leading-5 text-zinc-500">
+          <p className="mt-3 text-xs leading-5 text-tinte-leise">
             Alle liefern dieselben zugesicherten Werte — dein Ergebnis ist also dasselbe. Der Name
             entscheidet nur, welcher Vertrag später im Schreiben an {anzeigeAnbieter} steht.{" "}
             <button
               onClick={zurueckAusNamensfrage}
-              className="text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+              className="text-signal-schrift underline underline-offset-2"
             >
               zurück
             </button>
@@ -959,8 +991,8 @@ function TarifClaim({
     return (
       <div className="flex w-full flex-col gap-3">
         {konfliktWarnung}
-        <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left dark:border-zinc-800 dark:bg-zinc-950">
-          <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+        <div className="w-full rounded-2xl border border-linie bg-flaeche shadow-[0_1px_2px_rgba(0,0,0,0.03)] px-5 py-4 text-left">
+          <p className="text-sm leading-6 text-tinte-mittel">
             {ausRechnung ? (
               <>
                 <span className="font-semibold">Deine Rechnung: {anzeigeAnbieter}.</span> Den
@@ -988,7 +1020,7 @@ function TarifClaim({
             {!alleZeigen && (
               <button
                 onClick={() => setAlleZeigen(true)}
-                className="rounded-full px-4 py-2 text-sm font-medium text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+                className="rounded-full px-4 py-2 text-sm font-medium text-signal-schrift underline underline-offset-2"
               >
                 Meiner ist nicht dabei …
               </button>
@@ -999,14 +1031,14 @@ function TarifClaim({
               der Scan auf echten Handyfotos liest, ist noch nicht gemessen.
               Solange das offen ist, bleibt der bewährte Weg der erste. */}
           {!ausRechnung && (
-            <div className="mt-4 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+            <div className="mt-4 border-t border-linie pt-3">
               <button
                 onClick={() => setScanOffen(true)}
-                className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+                className="rounded-full border border-linie-stark px-4 py-2 text-sm font-medium text-tinte-mittel transition hover:border-signal hover:text-signal-schrift"
               >
                 📄 Rechnung scannen
               </button>
-              <span className="ml-2 text-xs text-zinc-400 dark:text-zinc-500">
+              <span className="ml-2 text-xs text-tinte-leise">
                 findet deinen Tarif automatisch
               </span>
             </div>
@@ -1070,23 +1102,23 @@ function TarifClaim({
   return (
     <div className="flex w-full flex-col gap-3">
       {konfliktWarnung}
-      <div className="flex w-full flex-col gap-4 rounded-2xl border border-zinc-200 bg-white px-5 py-5 text-left dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex w-full flex-col gap-4 rounded-2xl border border-linie bg-flaeche shadow-[0_1px_2px_rgba(0,0,0,0.03)] px-5 py-5 text-left">
         <div className="flex flex-col gap-0.5">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+          <div className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-tinte-leise">
             Dein bestellter Tarif
             {ausRechnung && " · von deiner Rechnung gelesen"}
           </div>
-          <div className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
+          <div className="text-lg font-bold text-tinte">
             {gewaehlt.tarifname}{" "}
-            <span className="font-normal text-zinc-400">· {anzeigeAnbieter}</span>
+            <span className="font-normal text-tinte-leise">· {anzeigeAnbieter}</span>
           </div>
-          <div className="text-xs text-zinc-500">
+          <div className="text-xs text-tinte-leise">
             bis zu {formatMbps(gewaehlt.download_max_mbps)} Mbit/s
             {gewaehlt.monatspreis_eur != null &&
               ` · ${preisFormat(gewaehlt.monatspreis_eur)} €/Monat`}
             <button
               onClick={zurueckZurAuswahl}
-              className="ml-2 text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+              className="ml-2 text-signal-schrift underline underline-offset-2"
             >
               ändern
             </button>
@@ -1165,7 +1197,7 @@ function TarifClaim({
 function NochmalImVordergrund() {
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-left dark:border-amber-900 dark:bg-amber-950">
-      <div className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+      <div className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">
         Was jetzt zu tun ist
       </div>
       <p className="text-sm leading-6 text-amber-900 dark:text-amber-200">
@@ -1228,8 +1260,8 @@ function WieEsWeitergeht({
   let nummer = 0;
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+    <div className="flex flex-col gap-3 rounded-xl border border-linie bg-flaeche-tief px-4 py-4">
+      <div className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-tinte-leise">
         Wie es weitergeht
       </div>
 
@@ -1263,7 +1295,7 @@ function WieEsWeitergeht({
             href="https://breitbandmessung.de"
             target="_blank"
             rel="noreferrer"
-            className="text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+            className="text-signal-schrift underline underline-offset-2"
           >
             Breitbandmessung
           </a>{" "}
@@ -1286,10 +1318,10 @@ function WieEsWeitergeht({
       <MessreiheStand pruefung={pruefung} fenster={fenster} lage="urteil_schlecht" />
 
       <details className="group">
-        <summary className="cursor-pointer list-none text-xs font-medium text-zinc-500 underline underline-offset-2 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
+        <summary className="cursor-pointer list-none text-xs font-medium text-tinte-leise underline underline-offset-2 hover:text-tinte-mittel">
           Was dort geprüft wird
         </summary>
-        <div className="mt-2 flex flex-col gap-2 text-xs leading-5 text-zinc-600 dark:text-zinc-400">
+        <div className="mt-2 flex flex-col gap-2 text-xs leading-5 text-tinte-mittel">
           <p>
             Eines dieser drei Anzeichen genügt für eine erhebliche Abweichung (§ 57 Abs. 4 TKG)
             — bei {tarif.tarifname}:
@@ -1313,7 +1345,7 @@ function WieEsWeitergeht({
               </li>
             )}
           </ul>
-          <p className="text-zinc-500 dark:text-zinc-500">
+          <p className="text-tinte-leise">
             Geprüft wird das über eine Messreihe, nicht über eine einzelne Zahl — deine läuft
             gerade{" "}
             {pruefung.kennzahlen.messtage <= 1
@@ -1364,23 +1396,23 @@ function MessreiheStand({
   const { satz, weiterZurOffiziellen } = reihenStand(pruefung.gesamt, messtage, lage);
 
   return (
-    <div className="flex flex-col gap-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-left dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+    <div className="flex flex-col gap-1 rounded-lg border border-linie bg-flaeche px-3 py-2 text-left">
+      <div className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-tinte-leise">
         Deine Messreihe · {zaehler}
       </div>
-      <p className="text-xs leading-5 text-zinc-600 dark:text-zinc-400">{satz}</p>
+      <p className="text-xs leading-5 text-tinte-mittel">{satz}</p>
       {/* Ohne Handlungsleiter endete der Hinweis auf die offizielle Messung
           sonst als Sackgasse: Der Nutzer erführe, dass etwas dran ist, und
           bekäme keinen Weg. Bewusst nur der Link — ein Kulanz-Brief würde die
           GUTE Zahl von heute zitieren. */}
       {weiterZurOffiziellen && (
-        <p className="text-xs leading-5 text-zinc-600 dark:text-zinc-400">
+        <p className="text-xs leading-5 text-tinte-mittel">
           Sie läuft über die{" "}
           <a
             href="https://breitbandmessung.de"
             target="_blank"
             rel="noreferrer"
-            className="text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+            className="text-signal-schrift underline underline-offset-2"
           >
             Breitbandmessung
           </a>{" "}
@@ -1389,7 +1421,7 @@ function MessreiheStand({
         </p>
       )}
       {fenster.zuDicht > 0 && (
-        <p className="text-xs leading-5 text-zinc-500 dark:text-zinc-500">
+        <p className="text-xs leading-5 text-tinte-leise">
           {fenster.zuDicht === 1 ? "Eine Messung zählt" : `${fenster.zuDicht} Messungen zählen`}{" "}
           nicht mit: Zwischen zwei Messungen müssen mindestens 5 Minuten liegen — so schreibt es
           die offizielle Kampagne vor.
@@ -1416,11 +1448,11 @@ function MessreiheStand({
  */
 function ReihenEinordnung({ pruefung, fenster }: { pruefung: Vorpruefung; fenster: Fenster }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+    <div className="flex flex-col gap-3 rounded-xl border border-linie bg-flaeche-tief px-4 py-4">
+      <div className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-tinte-leise">
         Über mehrere Tage gelesen
       </div>
-      <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+      <p className="text-sm leading-6 text-tinte-mittel">
         {bestaetigungsSatz(pruefung.gesamt)}
       </p>
       <MessreiheStand pruefung={pruefung} fenster={fenster} lage="urteil_gut" />
@@ -1453,24 +1485,24 @@ function AngebotsRegal({ tarif }: { tarif: Tarif }) {
         {regal.map((angebot) => (
           <li
             key={angebot.slug}
-            className="flex items-baseline justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950"
+            className="flex items-baseline justify-between gap-3 rounded-lg border border-linie bg-flaeche px-3 py-2"
           >
-            <span className="min-w-0 text-sm text-zinc-700 dark:text-zinc-300">
-              <span className="font-semibold text-zinc-900 dark:text-zinc-50">
+            <span className="min-w-0 text-sm text-tinte-mittel">
+              <span className="font-semibold text-tinte">
                 {angebot.tarifname}
               </span>{" "}
-              <span className="text-zinc-400">· {angebot.anbieter}</span>
-              <span className="block text-xs text-zinc-500">
+              <span className="text-tinte-leise">· {angebot.anbieter}</span>
+              <span className="block text-xs text-tinte-leise">
                 normalerweise {formatMbps(angebot.download_normal_mbps)} Mbit/s
               </span>
             </span>
-            <span className="shrink-0 text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+            <span className="shrink-0 text-sm font-semibold tabular-nums text-tinte">
               {preisFormat(angebot.monatspreis_eur as number)} €
             </span>
           </li>
         ))}
       </ul>
-      <p className="text-[11px] leading-4 text-zinc-500 dark:text-zinc-500">
+      <p className="text-[11px] leading-4 text-tinte-leise">
         Listenpreise aus den offiziellen Produktinformationsblättern der Anbieter, ohne
         Endgeräte — der Router kommt überall obendrauf. Beim Vergleich liegen die
         Aktionspreise oft darunter. Ob es an deiner Adresse verfügbar ist, prüft der
@@ -1548,7 +1580,7 @@ function WechselKasten({
  */
 function PartnerVerweis({ partner, ziel }: { partner: string; ziel: string }) {
   return (
-    <div className="mt-2 flex flex-col gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-3 dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="mt-2 flex flex-col gap-1.5 rounded-lg border border-linie bg-flaeche px-3 py-3">
       {/* Kein rel="noreferrer": Der Verweis läuft über unsere eigene Route
           zum Partner, und Partnerprogramme prüfen die verweisende Domain
           gegen Betrug. Ohne Referrer stünde die Provision in Frage. Die
@@ -1558,12 +1590,12 @@ function PartnerVerweis({ partner, ziel }: { partner: string; ziel: string }) {
         href={ziel}
         target="_blank"
         rel="noopener"
-        className="text-sm font-semibold text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+        className="text-sm font-semibold text-signal-schrift underline underline-offset-2"
       >
         Angebote vergleichen bei {partner} →
       </a>
-      <p className="text-[11px] leading-4 text-zinc-500 dark:text-zinc-500">
-        <span className="font-bold uppercase tracking-wider">Anzeige</span> · Kommt darüber
+      <p className="text-[11px] leading-4 text-tinte-leise">
+        <span className="font-mono font-semibold uppercase tracking-[0.14em]">Anzeige</span> · Kommt darüber
         ein Vertrag zustande, bekommen wir eine Provision. Für dich bleibt der Preis
         gleich; auf das Messergebnis hat sie keinen Einfluss.
       </p>
@@ -1609,11 +1641,11 @@ function PreisEinordnung({
   });
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+    <div className="flex flex-col gap-3 rounded-xl border border-linie bg-flaeche-tief px-4 py-4">
+      <div className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-tinte-leise">
         Was es heute sonst gibt
       </div>
-      <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+      <p className="text-sm leading-6 text-tinte-mittel">
         An deiner Leitung ist nichts zu beanstanden. Falls dich trotzdem interessiert, wie
         dein Vertrag preislich steht: Diese Verträge sagen mindestens so viel zu wie{" "}
         {tarif.tarifname}.
@@ -1778,7 +1810,7 @@ function BriefKasten({
   }
 
   return (
-    <div className="mt-3 flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="mt-3 flex flex-col gap-3 rounded-lg border border-linie bg-flaeche p-3">
       <div className="flex flex-col gap-2 sm:flex-row">
         <BriefFeld
           beschriftung="Kundennummer"
@@ -1799,7 +1831,7 @@ function BriefKasten({
           Erscheint nur, wenn ein Bild vorliegt und noch kein Name im Feld
           steht — wer selbst getippt hat, wird nicht mehr gefragt. */}
       {rechnungsBild && !name.trim() && namensScan !== "abgelehnt" && (
-        <div className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-3 text-xs leading-5 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+        <div className="rounded-md border border-linie bg-flaeche-tief px-3 py-3 text-xs leading-5 text-tinte-mittel">
           {namensScan === "laeuft" ? (
             <span>Wir lesen den Namen …</span>
           ) : namensScan === "leer" ? (
@@ -1808,7 +1840,7 @@ function BriefKasten({
             <span>Das hat nicht geklappt — bitte trag den Namen selbst ein.</span>
           ) : (
             <>
-              <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+              <span className="font-semibold text-tinte-mittel">
                 Namen aus deiner Rechnung übernehmen?
               </span>{" "}
               Dafür schicken wir dein Rechnungsbild noch einmal an den KI-Dienst Anthropic. Er
@@ -1829,8 +1861,8 @@ function BriefKasten({
 
       {/* Der Empfänger steht offen da — auch dann, wenn wir keinen haben. Eine
           erfundene Adresse wäre schlimmer als eine sichtbare Lücke. */}
-      <div className="rounded-md bg-zinc-50 px-3 py-2 text-xs leading-5 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
-        <span className="font-semibold text-zinc-700 dark:text-zinc-300">An: </span>
+      <div className="rounded-md bg-flaeche-tief px-3 py-2 text-xs leading-5 text-tinte-mittel">
+        <span className="font-semibold text-tinte-mittel">An: </span>
         {kontakt ? anschriftZeilen(kontakt).join(", ") : "Anschrift deines Anbieters"}
         {kontakt?.email ? (
           <> · {kontakt.email}</>
@@ -1839,7 +1871,7 @@ function BriefKasten({
         )}
       </div>
 
-      <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-md bg-zinc-50 px-3 py-3 font-sans text-xs leading-5 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+      <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-md bg-flaeche-tief px-3 py-3 font-sans text-xs leading-5 text-tinte-mittel">
         {brief.text}
       </pre>
 
@@ -1861,7 +1893,7 @@ function BriefKasten({
 
       {hinweis && <p className="text-xs leading-5 text-amber-700 dark:text-amber-500">{hinweis}</p>}
 
-      <p className="text-xs leading-5 text-zinc-500 dark:text-zinc-500">
+      <p className="text-xs leading-5 text-tinte-leise">
         Der Brief ist eine Bitte um Prüfung, kein Rechtsschreiben — für Minderung oder Kündigung
         zählt allein die offizielle Messung aus dem Schritt darunter. Deine Angaben bleiben auf
         diesem Gerät.
@@ -1883,14 +1915,14 @@ function BriefFeld({
   platzhalter: string;
 }) {
   return (
-    <label className="flex flex-1 flex-col gap-1 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+    <label className="flex flex-1 flex-col gap-1 text-xs font-medium text-tinte-mittel">
       {beschriftung}
       <input
         type="text"
         value={wert}
         onChange={(e) => setzen(e.target.value)}
         placeholder={platzhalter}
-        className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-normal text-zinc-900 placeholder:text-zinc-400 focus:border-[#0b57d0] focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+        className="rounded-md border border-linie-stark px-3 py-2 text-sm font-normal text-tinte placeholder:text-tinte-leise focus:border-signal focus:outline-none"
       />
     </label>
   );
@@ -1908,11 +1940,11 @@ function Stufe({
 }) {
   return (
     <li className="flex gap-3">
-      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-[11px] font-bold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-linie text-[11px] font-bold text-tinte-mittel">
         {nummer}
       </span>
-      <div className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-        <span className="font-semibold text-zinc-900 dark:text-zinc-100">{titel}.</span>{" "}
+      <div className="text-sm leading-6 text-tinte-mittel">
+        <span className="font-semibold text-tinte">{titel}.</span>{" "}
         {children}
       </div>
     </li>
@@ -1929,10 +1961,10 @@ function KlassenKnopf({ klasse, onClick }: { klasse: TarifVorschlag; onClick: ()
   return (
     <button
       onClick={onClick}
-      className="max-w-full rounded-2xl border border-zinc-300 px-4 py-2 text-left text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+      className="max-w-full rounded-2xl border border-linie-stark px-4 py-2 text-left text-sm font-medium text-tinte-mittel transition hover:border-signal hover:text-signal-schrift"
     >
       {klasse.produkte.join(", ")}
-      <span className="ml-1 text-zinc-400">
+      <span className="ml-1 text-tinte-leise">
         {klasse.weitereNamen > 0 && `+${klasse.weitereNamen} weitere `}· bis zu{" "}
         {formatMbps(klasse.tarif.download_max_mbps)}
         {/* Nur wo zwei Knöpfe sonst gleich aussähen: die Werte, die sie
@@ -1947,12 +1979,12 @@ function KlassenKnopf({ klasse, onClick }: { klasse: TarifVorschlag; onClick: ()
 }
 
 const KNOPF_HAUPT =
-  "rounded-full bg-[#0b57d0] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50";
+  "rounded-full bg-signal px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-signal-aktiv disabled:opacity-50";
 const KNOPF_NEBEN =
-  "rounded-full border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:border-[#0b57d0] hover:text-[#0b57d0] dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-blue-400 dark:hover:text-blue-400";
+  "rounded-full border border-linie-stark bg-flaeche px-4 py-2.5 text-sm font-medium text-tinte-mittel transition hover:border-signal hover:text-signal-schrift";
 
 const SCAN_KARTE =
-  "w-full rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left dark:border-zinc-800 dark:bg-zinc-950";
+  "w-full rounded-2xl border border-linie bg-flaeche shadow-[0_1px_2px_rgba(0,0,0,0.03)] px-5 py-4 text-left";
 
 /**
  * Rechnung fotografieren oder hochladen — Einwilligung, Upload, Rückfrage.
@@ -2063,29 +2095,29 @@ function RechnungScan({
     return (
       <div className={SCAN_KARTE}>
         {dateiEingabe}
-        <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+        <h3 className="text-base font-semibold text-tinte">
           Rechnung scannen
         </h3>
-        <p className="mt-2 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+        <p className="mt-2 text-sm leading-6 text-tinte-mittel">
           {/* Die Aufzählung muss dem Extraktions-Schema entsprechen. Sie nannte
               drei Felder, gelesen wurden vier: Die Kundennummer stand seit
               Phase 4 im Schema, aber nicht in der Einwilligung. */}
           Damit wir deinen Tarif automatisch finden, schicken wir dein Foto einmal an den KI-Dienst
           Anthropic. Er liest daraus Anbieter, Vertragsname, Kundennummer und Monatsbetrag.
         </p>
-        <ul className="mt-3 flex flex-col gap-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+        <ul className="mt-3 flex flex-col gap-2 text-sm leading-6 text-tinte-mittel">
           <li>
-            <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+            <span className="font-semibold text-tinte">
               Wir speichern deine Rechnung nicht.
             </span>{" "}
             Sie geht durch uns hindurch und wird danach verworfen — kein Speichern, kein Protokoll.
           </li>
           <li>
-            <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+            <span className="font-semibold text-tinte">
               Verarbeitet wird außerhalb der EU.
             </span>{" "}
             Dort wird sie nach spätestens 30 Tagen gelöscht (Ausnahme: Verdacht auf Missbrauch) und{" "}
-            <span className="font-semibold text-zinc-800 dark:text-zinc-200">nicht</span> zum
+            <span className="font-semibold text-tinte">nicht</span> zum
             Training von KI verwendet.
           </li>
           {/* Der Satz hieß bis Phase 5 "Dein Name und deine Anschrift werden
@@ -2096,7 +2128,7 @@ function RechnungScan({
               Deshalb getrennt: die Anschrift gar nicht, der Name erst auf
               ausdrückliche Nachfrage. */}
           <li>
-            <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+            <span className="font-semibold text-tinte">
               Deine Anschrift wird nicht gelesen.
             </span>{" "}
             Nach deinem Namen fragen wir erst, wenn du einen Brief an deinen Anbieter schreiben
@@ -2104,7 +2136,7 @@ function RechnungScan({
           </li>
           <li>
             Was dein Vertrag an Tempo zusichert, kommt{" "}
-            <span className="font-semibold text-zinc-800 dark:text-zinc-200">nie</span> aus dem
+            <span className="font-semibold text-tinte">nie</span> aus dem
             Foto, sondern immer aus dem offiziellen Produktinformationsblatt.
           </li>
         </ul>
@@ -2114,7 +2146,7 @@ function RechnungScan({
           </button>
           {zurueck}
         </div>
-        <p className="mt-3 text-xs leading-5 text-zinc-500">
+        <p className="mt-3 text-xs leading-5 text-tinte-leise">
           Es genügt die Seite, auf der dein Tarif steht.
         </p>
       </div>
@@ -2125,12 +2157,12 @@ function RechnungScan({
     return (
       <div className={SCAN_KARTE}>
         <p
-          className="animate-pulse text-sm font-medium text-zinc-700 dark:text-zinc-300"
+          className="animate-pulse text-sm font-medium text-tinte-mittel"
           aria-live="polite"
         >
           Rechnung wird gelesen …
         </p>
-        <p className="mt-1 text-xs leading-5 text-zinc-500">
+        <p className="mt-1 text-xs leading-5 text-tinte-leise">
           Das dauert ein paar Sekunden. Bitte lass die Seite offen.
         </p>
       </div>
@@ -2154,14 +2186,14 @@ function RechnungScan({
         {konfliktHinweis}
         <div className={SCAN_KARTE}>
           {dateiEingabe}
-          <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+          <div className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-tinte-leise">
             Von deiner Rechnung gelesen
           </div>
-          <div className="mt-1 text-lg font-bold text-zinc-900 dark:text-zinc-50">
+          <div className="mt-1 text-lg font-bold text-tinte">
             {zustand.tarifname}{" "}
-            <span className="font-normal text-zinc-400">· {zustand.anbieter}</span>
+            <span className="font-normal text-tinte-leise">· {zustand.anbieter}</span>
           </div>
-          <p className="mt-2 text-sm leading-6 text-zinc-700 dark:text-zinc-300">Stimmt das?</p>
+          <p className="mt-2 text-sm leading-6 text-tinte-mittel">Stimmt das?</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               onClick={() =>
@@ -2185,7 +2217,7 @@ function RechnungScan({
       <div className="flex w-full flex-col gap-3">
         {konfliktHinweis}
         <div className={SCAN_KARTE}>
-          <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+          <p className="text-sm leading-6 text-tinte-mittel">
             {zustand.tarifname ? (
               <>
                 <span className="font-semibold">
@@ -2212,11 +2244,11 @@ function RechnungScan({
               />
             ))}
           </div>
-          <p className="mt-3 text-xs leading-5 text-zinc-500">
+          <p className="mt-3 text-xs leading-5 text-tinte-leise">
             Die Werte unterscheiden sich — deshalb fragen wir, statt zu raten.{" "}
             <button
               onClick={onAbbruch}
-              className="text-[#0b57d0] underline underline-offset-2 dark:text-blue-400"
+              className="text-signal-schrift underline underline-offset-2"
             >
               lieber selbst auswählen
             </button>
@@ -2252,7 +2284,7 @@ function RechnungScan({
   return (
     <div className={SCAN_KARTE}>
       {dateiEingabe}
-      <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+      <p className="text-sm leading-6 text-tinte-mittel">
         <span className="font-semibold">{titel}</span> {erklaerung}
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
@@ -2288,14 +2320,14 @@ function ResultCard({
   unit: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 rounded-2xl border border-zinc-200 bg-white px-2 py-5 dark:border-zinc-800 dark:bg-zinc-950">
-      <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+    <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-linie bg-flaeche shadow-[0_1px_2px_rgba(0,0,0,0.03)] px-2 py-5">
+      <span className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-tinte-leise">
         {label}
       </span>
-      <span className="font-mono text-3xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+      <span className="font-mono text-3xl font-medium leading-none tracking-tight tabular-nums text-tinte sm:text-4xl">
         {value}
       </span>
-      <span className="text-xs text-zinc-400">{unit}</span>
+      <span className="font-mono text-xs text-tinte-leise">{unit}</span>
     </div>
   );
 }

@@ -20,7 +20,7 @@ export default function MessungPage() {
   const wechselPartner = partnerAusUmgebung()?.name ?? null;
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center bg-zinc-50 px-6 py-16 font-sans dark:bg-black">
+    <div className="flex flex-1 flex-col items-center justify-center px-5 py-14 sm:px-6">
       <main className="flex w-full flex-col items-center">
         <MessungFlow wechselPartner={wechselPartner} />
       </main>
